@@ -1,24 +1,47 @@
+/*To Do: make the image urls "absolute" (/media/img/*) */
 html,body
 {
 	height:100%;
 	margin:0 0 0 0;
 	padding:0 0 0 0;	
 }
-
 img
 {
 	border:none;
 }
-
-#static_background
+#content
 {
-	background: url(../../img/stripe.png) repeat;
-	position:fixed;
-	width:100%;
-	height:100%;
-	z-index:-2
+	width:620px; padding: 155px 0 0 40px;
 }
+#content_container
+{
+	z-index:0;
+	position:relative;
+	width:700px;
+	height:100%;
+	top:0px;
+	margin-left:auto;
+	margin-right:auto;
+/*	border:dotted 1px black; */
+	background: url(../../img/content_shadow.png) repeat-y;
+}
+#home_item
+{
+	background-color:blue;
+}
+#home_item ul
+{
+	margin: 0;
+	padding: 0;
+	font-size: 36px;
+	list-style-type: none;
+}
+#home_item li
+{
+	font-size: 12px;
+	text-indent: 10px;
 
+}
 #navbar
 {
 	background-image:url(../../img/blueGradient.png);
@@ -28,13 +51,6 @@ img
 	top: 0px;
 	left: 0px;
 	z-index:1;
-}
-
-#title
-{
-	font:bold 2.5em palatino;
-	color:#EEEEEE;
-	padding-left:65px;
 }
 #navigation
 {
@@ -54,13 +70,6 @@ img
 	margin-right:auto;
 	width:640px;
 	height:100%;
-}
-#pcont
-{
-	position:absolute;
-	bottom:40px;
-	width:100%;
-	top:40px;
 }
 #part
 {
@@ -100,40 +109,25 @@ img
 {
 	padding:0 .75em 0 0;
 }
-
-
-#content_container
+#pcont
 {
-	z-index:0;
-	position:relative;
-	width:700px;
+	position:absolute;
+	bottom:40px;
+	width:100%;
+	top:40px;
+}
+#static_background
+{
+	background: url(../../img/stripe.png) repeat;
+	position:fixed;
+	width:100%;
 	height:100%;
-	top:0px;
-	margin-left:auto;
-	margin-right:auto;
-/*	border:dotted 1px black; */
-	background: url(../../img/content_shadow.png) repeat-y;
-}
-#content
-{
-	width:620px; padding: 155px 0 0 40px;
+	z-index:-2
 }
 
-#home_item
+#title
 {
-	background-color:blue;
-}
-
-#home_item ul
-{
-	margin: 0;
-	padding: 0;
-	font-size: 36px;
-	list-style-type: none;
-}
-#home_item li
-{
-	font-size: 12px;
-	text-indent: 10px;
-
+	font:bold 2.5em palatino;
+	color:#EEEEEE;
+	padding-left:65px;
 }
