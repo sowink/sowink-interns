@@ -25,13 +25,17 @@
     {{ diary_date }}
     {# {{ curr_diary }} #}
 {% endif %}
-{% for comment_item in comments %}
-    comment
-    {# {{ comment_item }} #}
-    <br />
-{% endfor %}
-<form method="post" action="/diary/{{ curr_diary.pk }}/addcomment/">
+<form method="post" action="addcomment/{{ curr_diary.pk }}/">
+    {{ csrf() }}
     {{ comment_form }}
     <input type="submit" value="Add Comment" />
 </form>
+<p> Comments: </p>
+{% for comment_item in comments %}
+    Posted by: {{ comment_item.commenter }}
+    At: {{ comment_item.pub_date }}
+    <br />
+    {{ comment_item.text }}
+    <br />
+{% endfor %}
 {% endblock %}

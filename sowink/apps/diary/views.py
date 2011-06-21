@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from diary.models import DiaryForm, CommentForm, Diary
 
 def index(request):
-    data = {}  # You'd add data here that you're sending to the template.
+    data = {}
     return jingo.render(request, 'diary/home.html', data)
     
 
@@ -62,7 +62,7 @@ def save_diary(request):
             new_diary.creation_date = datetime.datetime.now()
             new_diary.save()
             form.save_m2m()
-    return HttpResponseRedirect(reverse('diary.views.index'))
+    return HttpResponseRedirect(reverse('diary.views.my_diaries'))
 
 @login_required
 def save_comment(request, diary_id):
@@ -70,12 +70,13 @@ def save_comment(request, diary_id):
         form = CommentForm(request.POST)
         if form.is_valid():
             new_comment = form.save(commit=False)
-            new_comment.diary_entry = get_object_or_404(Diary, diary_id)
+            new_comment.diary_entry = get_object_or_404(Diary, pk=diary_id)
             new_comment.commenter = request.user
             new_comment.pub_date = datetime.datetime.now()
             new_comment.save()
             form.save_m2m()
-    return HttpResponseRedirect(reverse('diary.views.index'))
+    return HttpResponseRedirect(reverse('diary.views.view_diary',
+                                        args=[diary_id]))
 
  
 @login_required
