@@ -40,7 +40,7 @@ def list_drafts(request):
 
 @login_required
 def create_diary(request):
-    new_diaryform = DiaryForm(initial={'author': request.user,
+    new_diaryform = DiaryForm(initial={'creator': request.user,
                                        'text': 'Start Typing Here',
                                        'creation_date': datetime.datetime.now(),
                                        'title': 'Enter title here',
@@ -58,7 +58,7 @@ def save_diary(request):
         form = DiaryForm(request.POST)
         if form.is_valid():
             new_diary = form.save(commit=False)
-            new_diary.author = request.user
+            new_diary.creator = request.user
             new_diary.creation_date = datetime.datetime.now()
             new_diary.save()
             form.save_m2m()
@@ -95,12 +95,12 @@ def view_diary(request, diary_id):
     data = {'diary' : diary_form,
             'diary_title' : curr_diary.title,
             'diary_text' : curr_diary.text,
-            'diary_author' : curr_diary.author,
+            'diary_creator' : curr_diary.creator,
             'diary_date' : curr_diary.creation_date,
             'comment_form' : comment_form,
             'curr_diary' : curr_diary,
             'comments' : comments,
            }
-    if curr_diary.author == request.user:
+    if curr_diary.creator == request.user:
         data['userbool'] = True
     return jingo.render(request, 'diary/viewdiary.html', data)

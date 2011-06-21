@@ -4,10 +4,10 @@ from django.contrib.auth.models import User
 
 
 class Diary(models.Model):
-    author = models.ForeignKey(User, related_name='diaries')
+    creator = models.ForeignKey(User, related_name='diaries')
     creation_date = models.DateTimeField('date published')
     title = models.CharField(max_length=140)
-    text = models.CharField(max_length=2000)
+    text = models.TextField(max_length=5000)
     is_draft = models.BooleanField(default=False)
 
 
