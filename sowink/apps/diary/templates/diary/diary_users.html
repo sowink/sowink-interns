@@ -1,0 +1,8 @@
+{% extends "diary_base.html" %}
+{% block content %}
+<ul id="navigation">
+{% for user_profile in users %}
+    <li><a href="{{ user_profile.pk }}">{{ user_profile.username }}</a></li>
+{% endfor %}
+</ul>
+{% endblock %}

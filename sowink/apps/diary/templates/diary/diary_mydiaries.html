@@ -1,0 +1,8 @@
+{% extends "diary_base.html" %}
+{% block content %}
+<ul id="navigation">
+{% for diary in published_diaries %}
+    <li><a href="/diary/viewdiary/{{ diary.pk }}">{{ diary.title }}</a></li>
+{% endfor %}
+</ul>
+{% endblock %}

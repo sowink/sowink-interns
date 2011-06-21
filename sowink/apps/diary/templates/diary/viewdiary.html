@@ -1,0 +1,37 @@
+{% extends "diary_base.html" %}
+{% block content %}
+{% if userbool %}
+<form method="post" action="/diary/creatediary/processdiaryform/">
+    {% for field in diary %}
+        {{ field.label }}
+        <br />
+        {{ field }}
+        <br />
+    {% endfor %}
+<input type="submit" value="update" />
+</form>
+{% else %}
+    <h1>{{ diary_author }}'s Diary</h1>
+    <br />
+    Title:
+    <br />
+    <p>{{ diary_title }}</p>
+    <br />
+    Text:
+    <br />
+    <p>{{ diary_text }}</p>
+    <br />
+    Date Published:
+    {{ diary_date }}
+    {# {{ curr_diary }} #}
+{% endif %}
+{% for comment_item in comments %}
+    comment
+    {# {{ comment_item }} #}
+    <br />
+{% endfor %}
+<form method="post" action="/diary/{{ curr_diary.pk }}/addcomment/">
+    {{ comment_form }}
+    <input type="submit" value="Add Comment" />
+</form>
+{% endblock %}
