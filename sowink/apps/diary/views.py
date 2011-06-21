@@ -1,20 +1,12 @@
-# from django import http
 import jingo
 import datetime
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
-
 from django.template import RequestContext
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
-
-from django.core.context_processors import csrf
-
-# from django.core.context_processors import csrf
-
 
 from diary.models import DiaryForm, CommentForm, Diary
 
@@ -47,7 +39,6 @@ def list_drafts(request):
 
 
 @login_required
-# get context_instance to work so I can remove this
 def create_diary(request):
     new_diaryform = DiaryForm(initial={'author': request.user,
                                        'text': 'Start Typing Here',
@@ -55,17 +46,13 @@ def create_diary(request):
                                        'title': 'Enter title here',
                                        'is_draft': True, })
     data = {'diaryform' : new_diaryform}
-    data.update(csrf(request))
     return jingo.render(request,
                         'diary/edit_diary.html',
                         data,
-                      #  context_instance=RequestContext(request),
                        )
-                        # conesponseRedirect(reverse('diary.views.my_diaries'))
 
 
 @login_required
-@csrf_exempt # need to fix this
 def save_diary(request):
     if request.method == 'POST':
         form = DiaryForm(request.POST)
@@ -79,10 +66,8 @@ def save_diary(request):
 
 @login_required
 def save_comment(request, diary_id):
-    #raise ValueError
     if request.method == 'POST':
         form = CommentForm(request.POST)
-        #raise ValueError
         if form.is_valid():
             new_comment = form.save(commit=False)
             new_comment.diary_entry = get_object_or_404(Diary, diary_id)
@@ -90,7 +75,6 @@ def save_comment(request, diary_id):
             new_comment.pub_date = datetime.datetime.now()
             new_comment.save()
             form.save_m2m()
-            #raise ValueError
     return HttpResponseRedirect(reverse('diary.views.index'))
 
  
@@ -107,7 +91,6 @@ def view_diary(request, diary_id):
     comments = curr_diary.comments.all()
     diary_form = DiaryForm(instance=curr_diary)
     comment_form = CommentForm()
-    # raise ValueError
     data = {'diary' : diary_form,
             'diary_title' : curr_diary.title,
             'diary_text' : curr_diary.text,

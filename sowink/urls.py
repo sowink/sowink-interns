@@ -7,13 +7,15 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^$|^home$', include('play1.urls')),
-
-    (r'', include('msgs.urls')),
+    #(r'^$|^loginwindow$', 'django.contrib.auth.views.login'),
+    (r'^diary/', include('diary.urls')), 
     # Uncomment the admin/doc line below to enable admin documentation:
     # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
+    (r'', include('msgs.urls')),
     # Uncomment the next line to enable the admin:
     (r'^admin/', include(admin.site.urls)),
+    
 )
 
 ## In DEBUG mode, serve media files through Django.

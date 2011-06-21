@@ -168,6 +168,9 @@ MINIFY_BUNDLES = {
         'play1_css': (
             'css/play1/style.css',
         ),
+        'diary_css': (
+            'css/diary/style.css',
+        ),
     },
     'js': {
         'example_js': (
@@ -202,6 +205,7 @@ INSTALLED_APPS = (
     'examples',  # Example code. Can (and should) be removed for actual projects.
     'play1',
     'msgs',
+    'diary',
 
     # We need this so the jsi18n view will pick up our locale directory.
     ROOT_PACKAGE,
