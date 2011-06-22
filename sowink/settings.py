@@ -81,19 +81,6 @@ def lazy_lang_url_map():
 
 LANGUAGE_URL_MAP = lazy(lazy_lang_url_map, dict)()
 
-# Override Django's built-in with our native names
-def lazy_langs():
-    from django.conf import settings
-    from product_details import product_details
-    langs = DEV_LANGUAGES if settings.DEV else PROD_LANGUAGES
-    return dict([(lang.lower(), product_details.languages[lang]['native'])
-                 for lang in langs])
-
-# Where to store product details etc.
-PROD_DETAILS_DIR = path('lib/product_details_json')
-
-LANGUAGES = lazy(lazy_langs, dict)()
-
 # Paths that don't require a locale code in the URL.
 SUPPORTED_NONLOCALES = ['media']
 
@@ -231,7 +218,6 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
 
     # L10n
-    'product_details',
     'django_extensions',
 
 )

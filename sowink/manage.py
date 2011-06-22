@@ -13,13 +13,8 @@ prev_sys_path = list(sys.path)
 site.addsitedir(path('apps'))
 site.addsitedir(path('lib'))
 
-# Local (project) vendor library
-site.addsitedir(path('vendor-local'))
-site.addsitedir(path('vendor-local/lib/python'))
-
 # Global (upstream) vendor library
 site.addsitedir(path('vendor'))
-site.addsitedir(path('vendor/lib/python'))
 
 
 # Move the new items to the front of sys.path. (via virtualenv)
