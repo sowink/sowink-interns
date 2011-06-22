@@ -204,7 +204,8 @@ INSTALLED_APPS = (
 
     'examples',  # Example code. Can (and should) be removed for actual projects.
     'play1',
-    'msgs',
+    'messages',
+    'users',
     'diary',
 
     # We need this so the jsi18n view will pick up our locale directory.
