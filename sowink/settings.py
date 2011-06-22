@@ -89,7 +89,7 @@ SUPPORTED_NONLOCALES = ['media']
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-MEDIA_ROOT = path('/Users/vivre/Development/playdoh/media/')
+MEDIA_ROOT = path('media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -149,20 +149,21 @@ def JINJA_CONFIG():
 # and js files that can be bundled together by the minify app.
 MINIFY_BUNDLES = {
     'css': {
-        'example_css': (
-            'css/examples/main.css',
-        ),
-        'play1_css': (
-            'css/play1/style.css',
+        'chat_css': (
+            'css/chat.css',
         ),
         'diary_css': (
-            'css/diary/style.css',
+            'css/diary.css',
+        ),
+        'play1_css': (
+            'css/play1.css',
         ),
     },
     'js': {
-        'example_js': (
-            'js/libs/jquery-1.4.4.min.js',
-        ),
+# LEAVING EXAMPLE IN FOR NOOB REFERENCE. REMOVE WHEN YOU INCLUDE JS
+#         'example_js': (
+#             'js/libs/jquery-1.4.4.min.js',
+#         ),
     }
 }
 
