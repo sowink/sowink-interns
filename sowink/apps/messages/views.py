@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from msgs.models import Message
+from messages.models import Message
 
 import jingo
 
@@ -24,13 +24,13 @@ def login_user(request):
             if user.is_active:
                 login(request, user)
                 request.session['logged_user'] = usr
-                homepage = "/user/" + usr
+                homepage = "/profile/user/" + usr
                 return HttpResponseRedirect(homepage)
             else:
                 msg.append("You have entered a disabled account")
         else:
             msg.append("Invalid login")
-    return jingo.render(request, 'msgs/login.html', {'errors': msg})
+    return jingo.render(request, 'users/login.html', {'errors': msg})
 
 
 def logout_user(request):
@@ -42,7 +42,7 @@ def logout_user(request):
     except KeyError:
         pass
     logout(request)
-    return jingo.render(request, 'msgs/logout.html')
+    return jingo.render(request, 'users/logout.html')
 
 
 def user_page(request, username):
@@ -62,7 +62,7 @@ def user_page(request, username):
     q = (Message.objects.filter(to_user__username=username)
         .order_by("-date"))
 
-    return jingo.render(request, 'msgs/user_page.html',
+    return jingo.render(request, 'users/user_page.html',
                                  {'username': username,
                                  'logged_user': logged_user,
                                  'q': q})
