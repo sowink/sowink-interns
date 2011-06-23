@@ -169,18 +169,19 @@ MINIFY_BUNDLES = {
         ),
     },
     'js': {
-        'common': (
-#            'js/i18n.js',
-            'js/libs/jquery.min.js',
-            'js/libs/modernizr-1.7.js',
-            'js/libs/jquery.cookie.js',
-            'js/libs/jquery.placeholder.js',
-            'js/kbox.js',
-#            'global/menu.js',
-            'js/main.js',
-            'js/format.js',
-            'js/loadtest.js',
-        ),
+#comment all these js till I add them
+#         'common': (
+# #            'js/i18n.js',
+#             'js/libs/jquery.min.js',
+#             'js/libs/modernizr-1.7.js',
+#             'js/libs/jquery.cookie.js',
+#             'js/libs/jquery.placeholder.js',
+#             'js/kbox.js',
+# #            'global/menu.js',
+#             'js/main.js',
+#             'js/format.js',
+#             'js/loadtest.js',
+#         ),
     }
 }
 
@@ -203,14 +204,14 @@ ROOT_URLCONF = '%s.urls' % ROOT_PACKAGE
 
 INSTALLED_APPS = (
     # Local apps
-    'chat',     # beginnings of a chat app
+#    'chat',     # beginnings of a chat app. commented out for now
     'commons',  # Content common to most playdoh-based apps.
     'diary',
     'jingo_minify',
     'messages',
     'msgs',
     'play1',    # sample for including external styles
-    'sumo',
+#    'sumo',    #commenting out for now
     'tower',  # for ./manage.py extract (L10n)
     'users',
 
@@ -277,7 +278,7 @@ HMAC_KEYS = {  # for bcrypt only
 
 #NOTE: borrowed from mozilla
 # URL of the chat server.
-CHAT_SERVER = 'https://localhost:9091'
+CHAT_SERVER = 'http://localhost'
 CHAT_CACHE_KEY = 'sowink-chat-queue-status'
 # New settings for Python implementation of chat:
 CHAT_PORT = 3000
