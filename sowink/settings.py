@@ -1,8 +1,12 @@
 # Django settings file for a project based on the playdoh template.
+#TODO:  handle replacement of SUMO resources
+#       revisit "#NOTE" sections
 
 import os
+import platform
 
 from django.utils.functional import lazy
+
 
 # Make file paths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +57,10 @@ TOWER_ADD_HEADERS = True
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-US'
+
+#NOTE: SUMO references
+TEXT_DOMAIN = 'messages'
+#end NOTE
 
 ## Accepted locales
 
@@ -130,7 +138,7 @@ TEMPLATE_DIRS = (
 def JINJA_CONFIG():
     import jinja2
     from django.conf import settings
-#    from caching.base import cache
+    from caching.base import cache
     config = {'extensions': ['tower.template.i18n', 'jinja2.ext.do',
                              'jinja2.ext.with_', 'jinja2.ext.loopcontrols'],
               'finalize': lambda x: x if x is not None else ''}
@@ -186,8 +194,11 @@ ROOT_URLCONF = '%s.urls' % ROOT_PACKAGE
 
 INSTALLED_APPS = (
     # Local apps
+    'chat',     # beginnings of a chat app
     'commons',  # Content common to most playdoh-based apps.
+    'diary',
     'jingo_minify',
+<<<<<<< HEAD
     'tower',  # for ./manage.py extract (L10n)
 
     'examples',  # Example code. Can (and should) be removed for actual projects.
@@ -195,12 +206,19 @@ INSTALLED_APPS = (
     'messages',
     'users',
     'diary',
+=======
+    'msgs',
+    'play1',    # sample for including external styles
+    'sumo',
+    'tower',  # for ./manage.py extract (L10n)
+>>>>>>> chatplay
 
     # We need this so the jsi18n view will pick up our locale directory.
     ROOT_PACKAGE,
 
     # Third-party apps
     'commonware.response.cookies',
+    'cronjobs',
     'djcelery',
     'django_nose',
     'django_extensions',
@@ -255,6 +273,10 @@ PWD_ALGORITHM = 'sha512'  # recommended: 'bcrypt'
 HMAC_KEYS = {  # for bcrypt only
     #'2011-01-01': 'cheesecake',
 }
+
+# URL of the chat server.
+CHAT_SERVER = 'https://chat-support.mozilla.com:9091'
+CHAT_CACHE_KEY = 'sumo-chat-queue-status'
 
 ## Tests
 TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
