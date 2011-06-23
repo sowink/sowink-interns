@@ -169,10 +169,18 @@ MINIFY_BUNDLES = {
         ),
     },
     'js': {
-# LEAVING EXAMPLE IN FOR NOOB REFERENCE. REMOVE WHEN YOU INCLUDE JS
-#         'example_js': (
-#             'js/libs/jquery-1.4.4.min.js',
-#         ),
+        'common': (
+#            'js/i18n.js',
+            'js/libs/jquery.min.js',
+            'js/libs/modernizr-1.7.js',
+            'js/libs/jquery.cookie.js',
+            'js/libs/jquery.placeholder.js',
+            'js/kbox.js',
+#            'global/menu.js',
+            'js/main.js',
+            'js/format.js',
+            'js/loadtest.js',
+        ),
     }
 }
 
@@ -199,20 +207,12 @@ INSTALLED_APPS = (
     'commons',  # Content common to most playdoh-based apps.
     'diary',
     'jingo_minify',
-<<<<<<< HEAD
-    'tower',  # for ./manage.py extract (L10n)
-
-    'examples',  # Example code. Can (and should) be removed for actual projects.
-    'play1',
     'messages',
-    'users',
-    'diary',
-=======
     'msgs',
     'play1',    # sample for including external styles
     'sumo',
     'tower',  # for ./manage.py extract (L10n)
->>>>>>> chatplay
+    'users',
 
     # We need this so the jsi18n view will pick up our locale directory.
     ROOT_PACKAGE,
@@ -275,9 +275,13 @@ HMAC_KEYS = {  # for bcrypt only
     #'2011-01-01': 'cheesecake',
 }
 
+#NOTE: borrowed from mozilla
 # URL of the chat server.
-CHAT_SERVER = 'https://chat-support.mozilla.com:9091'
-CHAT_CACHE_KEY = 'sumo-chat-queue-status'
+CHAT_SERVER = 'https://localhost:9091'
+CHAT_CACHE_KEY = 'sowink-chat-queue-status'
+# New settings for Python implementation of chat:
+CHAT_PORT = 3000
+#end NOTE
 
 ## Tests
 TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
