@@ -6,7 +6,7 @@ from django.contrib import admin
 admin.autodiscover()
 
 urlpatterns = patterns('',
-    (r'^chat', include('chat.urls')),
+#    (r'^chat', include('chat.urls')),
     (r'^$|^home$', include('play1.urls')),
     #(r'^$|^loginwindow$', 'django.contrib.auth.views.login'),
     (r'^diary/', include('diary.urls')), 
