@@ -3,7 +3,6 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 
 from messages.models import Message
@@ -16,6 +15,7 @@ def login_user(request):
     Login user and store username in logged_user session variable.
     After authentication redirect logged_user to their homepage.
     '''
+
     msg = []
     if request.method == 'POST':
         usr = request.POST['usr']
@@ -38,6 +38,7 @@ def logout_user(request):
     '''
     Logs out user and deletes logged_user session variable.
     '''
+
     try:
         del request.session['logged_user']
     except KeyError:
@@ -54,12 +55,12 @@ def user_page(request, username):
     '''
 
     try:
-        #Verify user exists in database
+        # Verify user exists in database.
         User.objects.get(username=username)
-    except ObjectDoesNotExist:
+    except User.DoesNotExist:
         print "Requested user page:%s not found" % username
 
-    logged_user = request.session['logged_user']
+    logged_user = request.user.username
     q = (Message.objects.filter(to_user__username=username)
         .order_by("-date"))
 

@@ -18,13 +18,12 @@ def send_message(request):
     message on commented page.
     '''
     to = request.POST['usr']
-    frm = request.session['logged_user']
     to_who = User.objects.get(username__exact=to)
-    frm_who = User.objects.get(username__exact=frm)
+    frm_who = request.user
     msg = request.POST['message']
 
     entry = Message(to_user=to_who, from_user=frm_who, msg=msg)
     entry.save()
 
     return HttpResponseRedirect(reverse('users.user_page',
-        args=[to]))
+                                         args=[to]))
