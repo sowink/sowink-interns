@@ -133,6 +133,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 TEMPLATE_DIRS = (
     path('templates'),
+    path('apps/diary/templates/diary'),
 )
 
 def JINJA_CONFIG():

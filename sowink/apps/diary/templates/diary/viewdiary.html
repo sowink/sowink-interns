@@ -1,41 +1,37 @@
 {% extends "diary_base.html" %}
 {% block content %}
-{% if userbool %}
-<form method="post" action="/diary/creatediary/processdiaryform/">
-    {% for field in diary %}
-        {{ field.label }}
-        <br />
-        {{ field }}
-        <br />
-    {% endfor %}
-<input type="submit" value="update" />
-</form>
-{% else %}
-    <h1>{{ diary_creator }}'s Diary</h1>
+    <h1>{{ entry.creator }}'s Diary</h1>
     <br />
     Title:
     <br />
-    <p>{{ diary_title }}</p>
+    <p>{{ entry.title }}</p>
     <br />
     Text:
     <br />
-    <p>{{ diary_text }}</p>
+    <p>{{ entry.text }}</p>
     <br />
     Date Published:
-    {{ diary_date }}
-    {# {{ curr_diary }} #}
-{% endif %}
-<form method="post" action="addcomment/{{ curr_diary.pk }}/">
+    {{ entry.created }}
+<form method="post" action="{{ url('diary.delete', diary_id=entry.pk) }}">
+    {{ csrf() }}
+    <input type="submit" value="Delete Diary" />
+</form>
+<a href="{{ url('diary.edit', diary_id=entry.pk) }}">Edit This Diary</a>
+<form method="post" action="{{ url('diary.reply', diary_id=entry.pk) }}">
     {{ csrf() }}
     {{ comment_form }}
     <input type="submit" value="Add Comment" />
 </form>
 <p> Comments: </p>
 {% for comment_item in comments %}
-    Posted by: {{ comment_item.commenter }}
-    At: {{ comment_item.pub_date }}
+    Posted by: {{ comment_item.creator }}
+    At: {{ comment_item.created }}
     <br />
     {{ comment_item.text }}
     <br />
+    <form method="post" action="{{ url('diary.delete_comment', comment_id=comment_item.pk) }}">
+        {{ csrf() }}
+        <input type="submit" value="Delete Comment" />
+    </form>
 {% endfor %}
 {% endblock %}

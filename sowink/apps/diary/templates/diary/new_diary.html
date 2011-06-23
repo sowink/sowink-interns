@@ -1,6 +1,6 @@
 {% extends "diary_base.html" %}
 {% block content %}
-<form method="post" action="{{ url('diary.edit', diary_id=diary_id) }}">
+<form method="post" action="{{ url('diary.create_diary') }}">
 {{ csrf() }}
 {% for field in diaryform %}
    {{ field.label }}
@@ -8,6 +8,6 @@
    {{ field }}
    <br />
 {% endfor %}
-<input type="submit" value="Update" />
+<input type="submit" value="Save" />
 </form>
 {% endblock %}

@@ -4,7 +4,7 @@ from diary.models import Comment
 
 
 class DiaryAdmin(admin.ModelAdmin):
-    fields = ['title', 'author', 'creation_date', 'text', 'is_draft']
+    fields = ['title', 'author', 'created', 'text', 'is_draft']
 
 
 admin.site.register(Diary)

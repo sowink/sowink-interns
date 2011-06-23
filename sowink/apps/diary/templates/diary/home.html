@@ -3,15 +3,14 @@
 <div id="navbar">
 	<div id="navigation">
 		<p id="title">Diary</p>
-		<br>
+		<br />
 		<div id="pcont">
 			<div id="part">
 				<ul>
-					<li class="start"><a href="mydiary">My Diary</a></li>
-					<li><a href="listdrafts">My Diary Drafts</a></li>
-					<li><a href="creatediary">Create a Diary Entry</a></li>
-					<li><a href="list_users">Other Diaries</a></li>
-					<li class="end"><a href="help">help</a></li>
+					<li class="start"><a href="{{ url('diary.my_diaries') }}">My Published Diaries</a></li>
+					<li><a href="{{ url('diary.list_drafts') }}">My Diary Drafts</a></li>
+					<li><a href="{{ url('diary.create_diary') }}">Create a Diary Entry</a></li>
+					<li><a href="{{ url('diary.list_users') }}">Other Diaries</a></li>
 				</ul>
 			</div>
 		</div>	
