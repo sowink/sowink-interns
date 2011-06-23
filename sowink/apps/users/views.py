@@ -1,1 +1,69 @@
-# Create your views here.
+from django.http import HttpResponseRedirect
+
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
+
+from messages.models import Message
+
+import jingo
+
+
+def login_user(request):
+    '''
+    Login user and store username in logged_user session variable.
+    After authentication redirect logged_user to their homepage.
+    '''
+    msg = []
+    if request.method == 'POST':
+        usr = request.POST['usr']
+        psswd = request.POST['psswd']
+        user = authenticate(username=usr, password=psswd)
+        if user is not None:
+            if user.is_active:
+                login(request, user)
+                request.session['logged_user'] = usr
+                return HttpResponseRedirect(reverse('users.user_page',
+                    args=[usr]))
+            else:
+                msg.append("You have entered a disabled account")
+        else:
+            msg.append("Invalid login")
+    return jingo.render(request, 'users/login.html', {'errors': msg})
+
+
+def logout_user(request):
+    '''
+    Logs out user and deletes logged_user session variable.
+    '''
+    try:
+        del request.session['logged_user']
+    except KeyError:
+        pass
+    logout(request)
+    return jingo.render(request, 'users/logout.html')
+
+
+def user_page(request, username):
+    '''
+    Gets user name from logged_user session variable.
+    Retrieve username messages from database.
+    Pass in database results to user_page.html template.
+    '''
+
+    try:
+        #Verify user exists in database
+        User.objects.get(username=username)
+    except ObjectDoesNotExist:
+        print "Requested user page:%s not found" % username
+
+    logged_user = request.session['logged_user']
+    q = (Message.objects.filter(to_user__username=username)
+        .order_by("-date"))
+
+    return jingo.render(request, 'users/user_page.html',
+                                 {'username': username,
+                                 'logged_user': logged_user,
+                                 'q': q})
