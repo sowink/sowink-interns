@@ -1,5 +1,6 @@
-from mall.models import Gift, UserGift
 from django.contrib import admin
+
+from mall.models import Gift, UserGift
 
 
 class GiftAdmin(admin.ModelAdmin):
