@@ -4,26 +4,48 @@
     </head>
     <body>
         <a href="/logout/"> Logout </a>
-        
+
         {% if username == logged_user %}
             <h1> Welcome home, {{ username }}. </h1>
-            <p> You have received the following messages: </p>
+            <a href="/messages/"> Click here to view your messages</a>
+
+            <p> <b>You have received the following gifts:</b> </p>
             <ul>
-            {% for entry in q %}
+            {% for gift_itor in gift %}
+                <li>Posted by: {{ gift_itor.creator.username }}</li>
+                <p>{{gift_itor.gift.title }}</p>
+                <p> Bought with: (1-WinkCash, 2-Coins): {{gift_itor.bought_with}}</li>
+            {% endfor %}
+            </ul>
+
+            <p> <b>You have received the following messages:</b> </p>
+            <ul>
+            {% for entry in msgs %}
                 <li>Posted by: {{ entry.from_user.username }} On: {{ entry.date}}</li>
                 <p>{{entry.msg }}</li>
             {% endfor %}
             </ul>
         {% else %}
             <h1> Welcome to {{ username }}'s homepage. </h1>
-            <p> {{ username }} has received the following messages: </p>  
+            <a href="/send_gift/"> Click to send gift to {{username}}.</a>
+
+            <p> <b>{{ username }} has received the following gifts:</b> </p>
             <ul>
-            {% for entry in q %}
+            {% for gift_itor in gift %}
+                <li>Posted by: {{ gift_itor.creator.username }}</li>
+                <p>{{gift_itor.gift.title }}</p>
+                <p> Bought with: (1-WinkCash, 2-Coins): {{gift_itor.bought_with}}</li>
+            {% endfor %}
+            </ul>
+
+            <p> <b>{{ username }} has received the following messages: </b></p>
+            <ul>
+            {% for entry in msgs %}
                 <li>Posted by: {{ entry.from_user.username }} On: {{ entry.date}}</li>
                 <p>{{entry.msg }}</li>
             {% endfor %}
             </ul>
-            
+
             <form action='/send-message/' method="post" >
             {{ csrf() }}
             Message {{ username }}:<br />
@@ -31,8 +53,8 @@
             <input type="hidden" name="usr" value="{{ username }}" />
             <br /> <br />
             <input type="submit" value="Send">
-            <input type="reset"  value="Reset"> 
-            </form>           
+            <input type="reset"  value="Reset">
+            </form>
         {% endif %}
     </body>
-</html> 
+</html>

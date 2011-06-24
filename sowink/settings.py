@@ -82,6 +82,7 @@ PROD_LANGUAGES = (
     'en-US',
 )
 
+
 def lazy_lang_url_map():
     from django.conf import settings
     langs = DEV_LANGUAGES if settings.DEV else PROD_LANGUAGES
@@ -135,6 +136,7 @@ TEMPLATE_DIRS = (
     path('templates'),
     path('apps/diary/templates/diary'),
 )
+
 
 def JINJA_CONFIG():
     import jinja2
@@ -206,14 +208,15 @@ INSTALLED_APPS = (
     # Local apps
 #    'chat',     # beginnings of a chat app. commented out for now
     'commons',  # Content common to most playdoh-based apps.
-    'diary',
     'jingo_minify',
-    'messages',
-    'msgs',
-    'play1',    # sample for including external styles
-#    'sumo',    #commenting out for now
     'tower',  # for ./manage.py extract (L10n)
+
+    'play1',
+    'messages',
+#    'sumo',    #commenting out for now
     'users',
+    'diary',
+    'mall',
 
     # We need this so the jsi18n view will pick up our locale directory.
     ROOT_PACKAGE,

@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
 
+from mall.models import UserGift
+
 from messages.models import Message
 
 import jingo
@@ -55,16 +57,19 @@ def user_page(request, username):
     '''
 
     try:
-        # Verify user exists in database.
         User.objects.get(username=username)
     except User.DoesNotExist:
         print "Requested user page:%s not found" % username
 
     logged_user = request.user.username
-    q = (Message.objects.filter(to_user__username=username)
-        .order_by("-date"))
+    msgs = (Message.objects.filter(to_user__username=username)
+         .order_by("-date"))
+
+    gift = (UserGift.objects.filter(recepient__username=username)
+            .order_by("-created"))
 
     return jingo.render(request, 'users/user_page.html',
                                  {'username': username,
-                                 'logged_user': logged_user,
-                                 'q': q})
+                                  'logged_user': logged_user,
+                                  'msgs': msgs,
+                                  'gift': gift})
