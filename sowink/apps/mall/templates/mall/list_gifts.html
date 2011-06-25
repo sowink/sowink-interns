@@ -3,7 +3,7 @@
         <title>List of gifts available </title>
     </head>
     <body>
-        <a href="/logout/"> Logout </a>
+        <a href="{{ url('users.logout') }}"> Logout </a>
         <h1> Welcome home to our mall: {{ logged_user }}. </h1>
         <a href="/messages/"> Click here to view your messages</a>
 
@@ -14,20 +14,21 @@
         {% if username == logged_user %}
             <p> List of gifts: </p>
             <ul>
-            {% for gift in q %}
-                <li>Title: {{ gift.title }} Creator: {{ gift.creator.username}} </br>
-                    Price in WinkCash: {{gift.winkcash}}, Coins: {{gift.coins}} </br>
-                    Created: {{gift.created}} </br> </br>
+            {% for gift in gifts %}
+                <li>Title: {{ gift.title }} Creator: {{ gift.creator.username }} </br>
+                    Price in WinkCash: {{ gift.winkcash }}, Coins: {{ gift.coins }} </br>
+                    Created: {{ gift.created }} </br> </br>
                 </li>
             {% endfor %}
             </ul>
         {% else %}
             <ul>
-            {% for gift in q %}
-                <li>Title: {{ gift.title }} Creator: {{ gift.creator.username}} </br>
-                    WinkCash: {{gift.winkcash}}, Coins: {{gift.coins}} </br>
-                    Created: {{gift.created}} </br>
-                    <form action='{{page}}' method="post" >
+            {% for gift in gifts %}
+                <li>Title: {{ gift.title }} Creator: {{ gift.creator.username }} </br>
+                    WinkCash: {{ gift.winkcash }}, Coins: {{ gift.coins }} </br>
+                    Created: {{ gift.created }} </br>
+                    <form action='{{url('mall.buy_gift', 
+                                  username)}}' method="post" >
                     {{ csrf() }}
                     Send Gift to: {{ username }}:<br />
                     <input type="hidden" name="gift_id" value="{{gift.id}}"/>

@@ -5,7 +5,8 @@
     <body>
         <p> <b>Please Enter Login Credentials.</b> </p>
         </ br>
-        <form action="/login/" method="post">
+
+        <form action="{{ url('users.login') }}" method="post">
         {{ csrf() }}
         Login:&nbsp; <input type="text" name="usr">
         <br/>

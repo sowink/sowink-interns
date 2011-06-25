@@ -1,63 +1,51 @@
-from django.http import HttpResponseRedirect
-
 from django.contrib.auth.models import User
-
 from django.core.urlresolvers import reverse
-
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
-
-from mall.models import Gift, UserGift
 
 import jingo
 
+from mall.models import Gift, UserGift
+
 
 def list_gifts(request, username):
-    '''
+    """ 
     Lists the gifts a user has received by most recent
     date. Pass in database results to list_gifts.html template.
-    '''
+    """
 
-    try:
-        User.objects.get(username=username)
-    except User.DoesNotExist:
-        print "Requested user page:%s not found" % username
+    # Verify user exists
+    get_object_or_404(User, username=username)
 
     logged_user = request.user.username
-    q = Gift.objects.all()
-    # change q to gifts, variable change
+    gifts = Gift.objects.all()
 
     return jingo.render(request, 'mall/list_gifts.html',
                                  {'username': username,
                                  'logged_user': logged_user,
-                                 'q': q})
+                                 'gifts': gifts})
 
 
 @require_POST
 def buy_gift(request, username):
-    '''
+    """
     Handles post data and determines whether a purchasing user
     has enough balance to purchase and send a gift.
-    '''
-
-    bought_with = 0
+    """
 
     gift_id = request.POST['gift_id']
 
-    if 'bought_wink' in request.POST:
-        bought_with = 1
-        # look up user balance in WinkCash, error if not
+    #gift = Gift.objects.get(id=gift_id)
+    gift = get_object_or_404(Gift, id=gift_id)
+    #sender = request.user
+    to = get_object_or_404(User, username=username)
+    #User.objects.get(username__exact=username)
+    bought_with = 1 if 'bought_wink' in request.POST else 2
 
-    if 'bought_coins' in request.POST:
-        bought_with = 2
-        # look up user balance in coins, error if not
-
-    gift = Gift.objects.get(id=gift_id)
-    sender = request.user
-    to = User.objects.get(username__exact=username)
-
-    entry = UserGift(gift=gift, creator=sender, recepient=to,
-                     bought_with=bought_with)
-    entry.save()
+    entry = UserGift.objects.create(gift=gift, creator=request.user, 
+                                    recepient=to, bought_with=bought_with)
+    #entry.save()
 
     return HttpResponseRedirect(reverse('users.user_page',
                                          args=[username]))

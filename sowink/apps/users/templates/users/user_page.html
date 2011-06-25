@@ -3,7 +3,7 @@
         <title>Homepage of User: {{ username }} </title>
     </head>
     <body>
-        <a href="/logout/"> Logout </a>
+        <a href="{{ url('users.logout') }}"> Logout </a>
 
         {% if username == logged_user %}
             <h1> Welcome home, {{ username }}. </h1>
@@ -11,10 +11,10 @@
 
             <p> <b>You have received the following gifts:</b> </p>
             <ul>
-            {% for gift_itor in gift %}
-                <li>Posted by: {{ gift_itor.creator.username }}</li>
-                <p>{{gift_itor.gift.title }}</p>
-                <p> Bought with: (1-WinkCash, 2-Coins): {{gift_itor.bought_with}}</li>
+            {% for gift in gifts %}
+                <li>Posted by: {{ gift.creator.username }}</li>
+                <p>{{gift.gift.title }}</p>
+                <p> Bought with: (1-WinkCash, 2-Coins): {{gift.bought_with}}</li>
             {% endfor %}
             </ul>
 
@@ -31,10 +31,10 @@
 
             <p> <b>{{ username }} has received the following gifts:</b> </p>
             <ul>
-            {% for gift_itor in gift %}
-                <li>Posted by: {{ gift_itor.creator.username }}</li>
-                <p>{{gift_itor.gift.title }}</p>
-                <p> Bought with: (1-WinkCash, 2-Coins): {{gift_itor.bought_with}}</li>
+            {% for gift in gifts %}
+                <li>Posted by: {{ gift.creator.username }}</li>
+                <p>{{gift.gift.title }}</p>
+                <p> Bought with: (1-WinkCash, 2-Coins): {{gift.bought_with}}</li>
             {% endfor %}
             </ul>
 
