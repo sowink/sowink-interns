@@ -31,7 +31,7 @@
                                   username)}}' method="post" >
                     {{ csrf() }}
                     Send Gift to: {{ username }}:<br />
-                    <input type="hidden" name="gift_id" value="{{gift.id}}"/>
+                    <input type="hidden" name="gift_id" value="{{ gift.id }}"/>
                     <input type="submit" name="bought_coins" value="Buy with Coins">
                     <input type="submit" name="bought_wink" value="Buy with WinkCash">
                     </form>

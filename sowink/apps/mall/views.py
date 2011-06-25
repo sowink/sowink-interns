@@ -36,11 +36,8 @@ def buy_gift(request, username):
 
     gift_id = request.POST['gift_id']
 
-    #gift = Gift.objects.get(id=gift_id)
     gift = get_object_or_404(Gift, id=gift_id)
-    #sender = request.user
     to = get_object_or_404(User, username=username)
-    #User.objects.get(username__exact=username)
     bought_with = 1 if 'bought_wink' in request.POST else 2
 
     entry = UserGift.objects.create(gift=gift, creator=request.user, 
