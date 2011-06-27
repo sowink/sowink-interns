@@ -2,7 +2,7 @@
 {% block content %}
 <ul id="navigation">
 {% for diary in published_diaries %}
-    <li><a href={{ url('diary.view_diary', diary_id=diary.pk) }}>{{ diary.title }}</a></li>
+  <li><a href={{ url('diary.view_diary', diary_id=diary.pk) }}>{{ diary.created }}</a></li>
 {% endfor %}
 </ul>
 {% endblock %}

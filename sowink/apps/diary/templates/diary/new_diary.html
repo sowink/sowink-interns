@@ -1,12 +1,14 @@
 {% extends "diary_base.html" %}
 {% block content %}
+{% from "errorlist.html" import errorlist %}
+{{ errorlist(diaryform) }}
 <form method="post" action="{{ url('diary.create_diary') }}">
 {{ csrf() }}
 {% for field in diaryform %}
-   {{ field.label }}
-   <br />
-   {{ field }}
-   <br />
+ {{ field.label }}
+ <br />
+ {{ field }}
+ <br />
 {% endfor %}
 <input type="submit" value="Save" />
 </form>

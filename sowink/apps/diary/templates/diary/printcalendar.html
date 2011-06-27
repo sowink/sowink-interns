@@ -1,0 +1,13 @@
+{# vim: set ts=2 et sts=2 sw=2: #}
+{% macro printcalendar(monthdays, diaries) -%}
+{% for day in monthdays %}
+  {% if diaries[day] %}
+    <a href={{ url('diary.view_diary', diary_id=diaries[day].pk) }}>
+      <b>{{ day }}</b>
+    </a>
+  {% else %}
+    {{ day }}
+  {% endif %}
+{% endfor %}
+{%- endmacro %}
+

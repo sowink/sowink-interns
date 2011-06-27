@@ -1,11 +1,28 @@
+{# vim: set ts=2 et sts=2 sw=2: #}
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" LANG="{{ LANG }}" dir="{{ DIR }}">
-	<head>
-		<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
-		<title>{% block page_title %}Diary{% endblock %}</title>
-		{% block site_css %}{{ css('diary_css') }}{% endblock %}
-	</head>
-	<body>
-	{% block content %}{% endblock %}
-	</body>
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+      <title>{% block page_title %}Diary{% endblock %}</title>
+        {% block site_css %}{{ css('diary_css') }}{% endblock %}
+  </head>
+  <body>
+  <div id="navbar">
+    <div id="navigation">
+      <p id="title">Diary</p>
+      <div id="pcont">
+        <div id="part">
+          <ul>
+            <li class="start"><a href="{{ url('diary.my_diaries') }}">My Published Diaries</a></li>
+            <li><a href="{{ url('diary.list_drafts') }}">My Diary Drafts</a></li>
+            <li><a href="{{ url('diary.create_diary') }}">Create a Diary Entry</a></li>
+            <li><a href="{{ url('diary.list_users') }}">Other Diaries</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr />
+  {% block content %}{% endblock %}
+  </body>
 </html>
