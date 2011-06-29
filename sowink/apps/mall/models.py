@@ -1,17 +1,16 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+from commons.models import ModelBase
+
 CURRENCIES = (
     (1, 'WinkCash'),
     (2, 'Coins'),
 )
 
 
-class Gift(models.Model):
-    """
-    Gift model used to store gifts users can send to other
-    users.
-    """
+class Gift(ModelBase):
+    """Gift model used to store gifts users can send to other users."""
 
     title = models.CharField(max_length=255, unique=True)
     creator = models.ForeignKey(User)
@@ -23,11 +22,8 @@ class Gift(models.Model):
         return self.title
 
 
-class UserGift(models.Model):
-    """
-    UserGift model is used to determine which users have
-    sent messages and which users have received messages.
-    """
+class UserGift(ModelBase):
+    """UserGift model used to determine who has sent and received a gift."""
 
     gift = models.ForeignKey(Gift, related_name='given')
     creator = models.ForeignKey(User, verbose_name='Sender',

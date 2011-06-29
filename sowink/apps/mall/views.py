@@ -11,38 +11,31 @@ from mall.models import Gift
 
 
 def list_gifts(request, username):
-    """
-    Lists all gifts a user has received by the most recent
-    date.
-    """
-
+    """Lists all gifts a user has received by the most recent date."""
     visitee = get_object_or_404(User, username=username)
     gifts = Gift.objects.all()
-
+    form = BuyGiftForm(bought_with=None, data=None)
+    
     return jingo.render(request, 'mall/list_gifts.html',
                                  {'visitee': visitee,
-                                 'gifts': gifts})
+                                  'gifts': gifts,
+                                  'form': form})
 
 
 @require_POST
 def buy_gift(request, username):
-    """
-    Handles post data and determines whether a purchasing user
-    has enough balance to purchase and send a gift.
-    """
-
-    recipient = request.POST['username']
+    """Handles form POST data and determines whether purchase can be made."""
     bought_with = 1 if 'bought_wink' in request.POST else 2
 
-    form = BuyGiftForm(recipient=recipient, bought_with=bought_with,
-                       data=request.POST)
+    form = BuyGiftForm(bought_with=bought_with, data=request.POST)
 
     if form.is_valid():
         form.save()
         return HttpResponseRedirect(reverse('users.user_page',
                                              args=[username]))
     else:
-        # implement to add errors to display
+        # TODO: implement to add errors to display
         # currently, User is sent back to the mall
-        return HttpResponseRedirect(reverse('mall.list_gifts',
-                                            args=[username]))
+        form = BuyGiftForm(bought_with=bought_with, data=request.POST)
+    
+    return HttpResponseRedirect(reverse('mall.list_gifts', args=[username]))

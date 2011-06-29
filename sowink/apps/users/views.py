@@ -12,11 +12,7 @@ from users.forms import LoginForm
 
 
 def login_user(request):
-    """
-    Verify user login and password. After authentication redirect
-    user to their homepage.
-    """
-
+    """Verify user login and password work."""
     msg = []
     if request.method == 'POST':
         form = LoginForm(request.POST)
@@ -28,7 +24,7 @@ def login_user(request):
                 if user.is_active:
                     login(request, user)
                     return HttpResponseRedirect(reverse('users.user_page',
-                                                 args=[request.user.username]))
+                                                args=[request.user.username]))
                 else:
                     msg.append("You have entered a disabled account")
                     return jingo.render(request, 'users/login.html',
@@ -44,20 +40,12 @@ def login_user(request):
 
 
 def logout_user(request):
-    """
-    Logs out user.
-    """
-
     logout(request)
     return jingo.render(request, 'users/logout.html')
 
 
 def user_page(request, username):
-    """
-    Retrieve username messages and received gifts from database.
-    Pass in database results to user_page.html template.
-    """
-
+    """Retrieve username messages and received gifts from database."""
     visitee = get_object_or_404(User, username=username)
 
     msgs = (Message.objects.filter(to_user__username=username)
@@ -67,6 +55,6 @@ def user_page(request, username):
             .order_by("-created"))
 
     return jingo.render(request, 'users/user_page.html',
-                                 {'visitee': visitee,
-                                  'msgs': msgs,
-                                  'gifts': gifts})
+                       {'visitee': visitee,
+                        'msgs': msgs,
+                        'gifts': gifts})

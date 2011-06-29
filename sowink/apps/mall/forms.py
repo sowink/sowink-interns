@@ -1,57 +1,57 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.forms import ModelForm
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
-from mall.models import Gift
-from mall.models import UserGift
+from mall.models import Gift, UserGift
 
 
-# Deducts creator's balance from purchasing gift. Assumes creator has enough balance.
+MSG_BALANCE_LOW = (u'User does not have enough balance to purchase gift')
+
+
 def deduct_balance(creator, gift, bought_with):
+    """Deducts creator's balance from purchasing a gift.
+
+    Assumes creator has enough balance by a preliminary check performed before
+    calling deduct_balance().
+
+    """
     profile = creator.profile
     if bought_with == 1:
-        profile.wink_cash = profile.wink_cash - gift.winkcash
+        profile.update(winkcash=profile.winkcash - gift.winkcash)
     else:
-        profile.coins = profile.coins - gift.coins
-    profile.save()
+        profile.update(coins=profile.coins - gift.coins)
     
 
 class BuyGiftForm(forms.ModelForm):
-                
-    def __init__(self, recipient, bought_with, data=None, 
+    """Form to buy a gift."""
+    def __init__(self, bought_with, data=None, 
                  *args, **kwargs): 
         if data:
             data = data.copy()
-            data['recipient']= recipient
             data['bought_with'] = bought_with
         super(BuyGiftForm, self).__init__(data=data, *args, **kwargs)
 
 
     def clean(self):
-        """ Check whether creator has enought balance to make purchase
-        
-        """
+        """Determine whether creator has enough balance to make purchase"""
 
         cleaned_data = self.cleaned_data
         gift = cleaned_data.get("gift")
         creator = cleaned_data.get("creator")
         bought_with = cleaned_data.get("bought_with")
 
-        user_balance = 0
-        gift_cost = 0
-
+        # Determine which balance to check, winkcash or coins.
         if bought_with == 1:
-            user_balance = creator.profile.wink_cash
+            user_balance = creator.profile.winkcash
             gift_cost = gift.winkcash
-        elif bought_with == 2:
+        else:
             user_balance = creator.profile.coins
             gift_cost = gift.coins
         
-        # Check whether user has enough balance to purchase the gift
+        # Check creator's balance.
         if gift_cost > user_balance:
-            raise forms.ValidationError("User does not have enough balance to purchase gift")
+            raise forms.ValidationError(MSG_BALANCE_LOW)
         else:
             deduct_balance(creator, gift, bought_with)
 
@@ -60,4 +60,4 @@ class BuyGiftForm(forms.ModelForm):
 
     class Meta:
         model = UserGift
-        exclude = ('created')
+        exclude = ['created']

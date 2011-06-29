@@ -21,7 +21,7 @@
             {% endfor %}
             </ul>
         {% else %}
-            <p>Coins:{{ user.profile.coins }}, WinkCash:{{ user.profile.wink_cash }}</p>
+            <p>Coins:{{ user.profile.coins }}, WinkCash:{{ user.profile.winkcash }}</p>
             <ul>
             {% for gift in gifts %}
                 <li>Title: {{ gift.title }} </br>
@@ -32,6 +32,7 @@
                     Send Gift to: {{ visitee.username }}:<br />
                     <input type="hidden" name="creator" value="{{ user.id }}"/>
                     <input type="hidden" name="username" value="{{ visitee.id }}"/>
+                    <input type="hidden" name="recipient" value="{{ visitee.id }}"/>
                     <input type="hidden" name="gift" value="{{ gift.id }}"/>
                     <input type="submit" name="bought_coins" value="Buy with Coins">
                     <input type="submit" name="bought_wink" value="Buy with WinkCash">
