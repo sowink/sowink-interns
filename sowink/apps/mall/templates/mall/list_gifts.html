@@ -4,15 +4,14 @@
     </head>
     <body>
         <a href="{{ url('users.logout') }}"> Logout </a>
-        <h1> Welcome home to our mall: {{ logged_user }}. </h1>
-        <a href="/messages/"> Click here to view your messages</a>
+        <h1> Welcome home to our mall: {{ user }}. </h1>
 
-        <!-- Redirect browsing user to gift receivers homepage  -->
-        {% set page = '/mall/gifts/buy/' %}
-        {% set page = page + username + '/' %}
+        {# Redirect browsing user to gift receivers homepage #}
+        {# % set page = '/mall/gifts/buy/' % #}
+        {# % set page = page + username + '/' % #}
 
-        {% if username == logged_user %}
-            <p> List of gifts: </p>
+        {% if visitee.username == user %}
+            <p> List of gifts: {{user}} </p>
             <ul>
             {% for gift in gifts %}
                 <li>Title: {{ gift.title }} Creator: {{ gift.creator.username }} </br>
@@ -22,16 +21,18 @@
             {% endfor %}
             </ul>
         {% else %}
+            <p>Coins:{{ user.profile.coins }}, WinkCash:{{ user.profile.wink_cash }}</p>
             <ul>
             {% for gift in gifts %}
-                <li>Title: {{ gift.title }} Creator: {{ gift.creator.username }} </br>
-                    WinkCash: {{ gift.winkcash }}, Coins: {{ gift.coins }} </br>
-                    Created: {{ gift.created }} </br>
-                    <form action='{{url('mall.buy_gift', 
-                                  username)}}' method="post" >
+                <li>Title: {{ gift.title }} </br>
+                    Coins: {{ gift.coins }}, WinkCash: {{ gift.winkcash }}</br>
+                    <form action='{{url('mall.buy_gift',
+                                  visitee.username)}}' method="post" >
                     {{ csrf() }}
-                    Send Gift to: {{ username }}:<br />
-                    <input type="hidden" name="gift_id" value="{{ gift.id }}"/>
+                    Send Gift to: {{ visitee.username }}:<br />
+                    <input type="hidden" name="creator" value="{{ user.id }}"/>
+                    <input type="hidden" name="username" value="{{ visitee.id }}"/>
+                    <input type="hidden" name="gift" value="{{ gift.id }}"/>
                     <input type="submit" name="bought_coins" value="Buy with Coins">
                     <input type="submit" name="bought_wink" value="Buy with WinkCash">
                     </form>

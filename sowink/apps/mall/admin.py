@@ -8,7 +8,7 @@ class GiftAdmin(admin.ModelAdmin):
 
 
 class UserGiftAdmin(admin.ModelAdmin):
-    fields = ['gift', 'creator', 'recepient', 'bought_with']
+    fields = ['gift', 'creator', 'recipient', 'bought_with']
 
 admin.site.register(Gift, GiftAdmin)
 admin.site.register(UserGift, UserGiftAdmin)

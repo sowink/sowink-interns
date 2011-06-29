@@ -1,19 +1,41 @@
 <html>
-    <head> 
-        <title>Login Page</title> 
+    <head>
+        <title>Login Page</title>
     </head>
     <body>
         <p> <b>Please Enter Login Credentials.</b> </p>
         </ br>
 
+        {# vim: set ts=2 et sts=2 sw=2: #}
+        {% from "errorlist.html" import errorlist %}
+        {{ errorlist(form) }}
         <form action="{{ url('users.login') }}" method="post">
         {{ csrf() }}
-        Login:&nbsp; <input type="text" name="usr">
+        {#  Login:&nbsp; <input type="text" name="username"> #}
         <br/>
-        Password:&nbsp; <input type="password" name="psswd">
-        <input type="submit" value="Login">
+        {#  Password:&nbsp; <input type="password" name="password"> #}
+        {# <input type="submit" value="Login"> #}
+
+
+        <fieldset>
+        <ul>
+        <li>
+        <label for="id_username">{{ _('Username:') }}</label>
+        {{ form.username|safe }}
+        </li>
+
+        <li>
+        <label for="id_password">{{ _('Password:') }}</label>
+        {{ form.password|safe }}
+        </li>
+        </ul>
+        </fieldset>
+        <div class="submit">
+        <input class="button" type="submit" name="login" value="{{ _('Log in') }}" />
+        </div>
+
         </form>
-        
+
         {% if errors %}
         <h3> Errors Detected </h3>
         <ul>
@@ -24,6 +46,4 @@
         {% endif %}
     </body>
 </html>
-
-
 

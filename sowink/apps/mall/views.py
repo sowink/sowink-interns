@@ -6,24 +6,21 @@ from django.views.decorators.http import require_POST
 
 import jingo
 
-from mall.models import Gift, UserGift
+from mall.forms import BuyGiftForm
+from mall.models import Gift
 
 
 def list_gifts(request, username):
-    """ 
-    Lists the gifts a user has received by most recent
-    date. Pass in database results to list_gifts.html template.
+    """
+    Lists all gifts a user has received by the most recent
+    date.
     """
 
-    # Verify user exists
-    get_object_or_404(User, username=username)
-
-    logged_user = request.user.username
+    visitee = get_object_or_404(User, username=username)
     gifts = Gift.objects.all()
 
     return jingo.render(request, 'mall/list_gifts.html',
-                                 {'username': username,
-                                 'logged_user': logged_user,
+                                 {'visitee': visitee,
                                  'gifts': gifts})
 
 
@@ -34,15 +31,18 @@ def buy_gift(request, username):
     has enough balance to purchase and send a gift.
     """
 
-    gift_id = request.POST['gift_id']
-
-    gift = get_object_or_404(Gift, id=gift_id)
-    to = get_object_or_404(User, username=username)
+    recipient = request.POST['username']
     bought_with = 1 if 'bought_wink' in request.POST else 2
 
-    entry = UserGift.objects.create(gift=gift, creator=request.user, 
-                                    recepient=to, bought_with=bought_with)
-    #entry.save()
+    form = BuyGiftForm(recipient=recipient, bought_with=bought_with,
+                       data=request.POST)
 
-    return HttpResponseRedirect(reverse('users.user_page',
-                                         args=[username]))
+    if form.is_valid():
+        form.save()
+        return HttpResponseRedirect(reverse('users.user_page',
+                                             args=[username]))
+    else:
+        # implement to add errors to display
+        # currently, User is sent back to the mall
+        return HttpResponseRedirect(reverse('mall.list_gifts',
+                                            args=[username]))

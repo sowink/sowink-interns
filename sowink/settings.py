@@ -7,6 +7,8 @@ import platform
 
 from django.utils.functional import lazy
 
+# Extend User model with additional attributes.
+AUTH_PROFILE_MODULE = 'users.Profile'
 
 # Make file paths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))

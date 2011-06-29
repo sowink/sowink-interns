@@ -1,13 +1,13 @@
 <html>
     <head>
-        <title>Homepage of User: {{ username }} </title>
+        <title>Homepage of User: {{ visitee }} </title>
     </head>
     <body>
         <a href="{{ url('users.logout') }}"> Logout </a>
 
-        {% if username == logged_user %}
-            <h1> Welcome home, {{ username }}. </h1>
-            <a href="/messages/"> Click here to view your messages</a>
+        {% if visitee == user %}
+            <h1> Welcome home, {{ user }}. </h1>
+            <p>Coins:{{ visitee.profile.coins }}, WinkCash:{{ visitee.profile.wink_cash }}</p>
 
             <p> <b>You have received the following gifts:</b> </p>
             <ul>
@@ -26,10 +26,10 @@
             {% endfor %}
             </ul>
         {% else %}
-            <h1> Welcome to {{ username }}'s homepage. </h1>
-            <a href="/send_gift/"> Click to send gift to {{username}}.</a>
+            <h1> Welcome to {{ visitee }}'s homepage. </h1>
+            <a href="{{ url('mall.list_gifts', visitee) }}"> Click to send gift to {{ visitee }}.</a>
 
-            <p> <b>{{ username }} has received the following gifts:</b> </p>
+            <p> <b>{{ visitee }} has received the following gifts:</b> </p>
             <ul>
             {% for gift in gifts %}
                 <li>Posted by: {{ gift.creator.username }}</li>
@@ -38,7 +38,7 @@
             {% endfor %}
             </ul>
 
-            <p> <b>{{ username }} has received the following messages: </b></p>
+            <p> <b>{{ visitee }} has received the following messages: </b></p>
             <ul>
             {% for entry in msgs %}
                 <li>Posted by: {{ entry.from_user.username }} On: {{ entry.date}}</li>
@@ -46,11 +46,11 @@
             {% endfor %}
             </ul>
 
-            <form action='/send-message/' method="post" >
+            <form action="{{ url('messages.send_message') }}" method="post" >
             {{ csrf() }}
-            Message {{ username }}:<br />
+            Message {{ visitee }}:<br />
             <textarea name="message" rows="10" columns="40"></textarea>
-            <input type="hidden" name="usr" value="{{ username }}" />
+            <input type="hidden" name="usr" value="{{ visitee }}" />
             <br /> <br />
             <input type="submit" value="Send">
             <input type="reset"  value="Reset">
