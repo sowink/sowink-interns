@@ -3,7 +3,6 @@
 #       revisit "#NOTE" sections
 
 import os
-import platform
 
 from django.utils.functional import lazy
 
@@ -218,6 +217,7 @@ INSTALLED_APPS = (
     'jingo_minify',
     'tower',  # for ./manage.py extract (L10n)
 
+    'sowink',
     'play1',
     'messages',
 #    'sumo',    #commenting out for now

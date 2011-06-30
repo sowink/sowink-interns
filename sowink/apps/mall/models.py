@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
-from commons.models import ModelBase
+from sowink.models import ModelBase
 
 CURRENCIES = (
     (1, 'WinkCash'),

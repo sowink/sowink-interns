@@ -17,9 +17,7 @@ def list_gifts(request, username):
     form = BuyGiftForm()
 
     return jingo.render(request, 'mall/list_gifts.html',
-                                 {'visitee': visitee,
-                                  'gifts': gifts,
-                                  'form': form})
+                        {'visitee': visitee, 'gifts': gifts, 'form': form})
 
 
 @require_POST

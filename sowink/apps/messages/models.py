@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 
-from commons.models import ModelBase
+from sowink.models import ModelBase
 
 
 class Message(ModelBase):
