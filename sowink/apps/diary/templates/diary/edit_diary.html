@@ -12,10 +12,10 @@
 {% endfor #}
 {{ diaryform.text }}
 <br />
-{% if diary.is_draft %}
+{# if diary.is_draft #}
   {{ diaryform.is_draft.label }}
   {{ diaryform.is_draft }}
-{% endif %}
+{# endif #}
 {{ diaryform.is_private.label }}
 {{ diaryform.is_private }}
 <input type="submit" value="Update" />

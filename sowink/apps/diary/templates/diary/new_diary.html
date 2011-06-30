@@ -2,7 +2,7 @@
 {% block content %}
 {% from "errorlist.html" import errorlist %}
 {{ errorlist(diaryform) }}
-<form method="post" action="{{ url('diary.create_diary') }}">
+<form method="post" action="{{ url('diary.new') }}">
 {{ csrf() }}
 {% for field in diaryform %}
  {{ field.label }}

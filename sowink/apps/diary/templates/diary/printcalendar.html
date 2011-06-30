@@ -2,12 +2,11 @@
 {% macro printcalendar(monthdays, diaries) -%}
 {% for day in monthdays %}
   {% if diaries[day] %}
-    <a href={{ url('diary.view_diary', diary_id=diaries[day].pk) }}>
-      <b>{{ day }}</b>
+    <a href={{ url('diary.single', username=diaries[day].creator.username, year=diaries[day].created.year, month=diaries[day].created.month, day=diaries[day].created.day) }}>
+      <span><b>{{ day }}</b></span>
     </a>
   {% else %}
-    {{ day }}
+    <span>{{ day }}</span>
   {% endif %}
 {% endfor %}
 {%- endmacro %}
-

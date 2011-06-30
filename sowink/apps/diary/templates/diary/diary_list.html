@@ -1,19 +1,35 @@
 {% extends "diary_base.html" %}
 {% block content %}
-<h1>{{ curr_user }}</h1>
+<h1>{{ user.username }}</h1>
 <ul id="navigation">
-
+{#
 {{ year }}.{{ month }}
-<form action="{{ url('diary.list_diaries', username=curr_user) }}" method="GET">
-  <input type="hidden" name="year" value="{{ year }}" />
-  <input type="hidden" name="month" value="{{ month - 1 }}" />
-  <input type="submit" value="<" />
-</form>
+<div id="back-button">
+  <a href="?year={{ year }}&month={{ month - 1 }}">Last month</a>
+</div>
 {% from "printcalendar.html" import printcalendar %}
 {{ printcalendar(monthdays, diaries_dict) }}
-<form action="{{ url('diary.list_diaries', username=curr_user) }}" method="GET">
-  <input type="hidden" name="year" value="{{ year }}" />
-  <input type="hidden" name="month" value="{{ month + 1 }}" />
-  <input type="submit" value=">" />
-</form>
+<div id="forward-button">
+  <a href="?year={{ year }}&month={{ month + 1 }}">Next month</a>
+</div>
+{% for diary in diaries_dict %}
+  {{ diaries_dict[diary].text }}
+{% endfor %}
+#}
+{% for diary in diaries %}
+  <br />
+  <a href={{ url('diary.single',
+                 username=diary.creator.username,
+                 year=diary.created.year,
+                 month=diary.created.month,
+                 day=diary.created.day) }}>
+    {{ diary.created_day }}
+  </a>
+  {% if diary.is_private %}
+    private
+  {% endif %}
+  <br />
+  {{ diary.text }}
+  <br />
+{% endfor %}
 {% endblock %}

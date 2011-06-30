@@ -1,5 +1,22 @@
 {% extends "diary_base.html" %}
 {% block content %}
+{# CALENDAR NAVIGATION #}
+{{ year }}.{{ month }}
+<br />
+<select id="month_select" onchange="{window.top.location.href=this.options[this.selectedIndex].value}">
+  {% for moon in months %}
+  <option 
+          {% if loop.index == month %} selected="selected" {% endif %}
+          value="{{ url('diary.single',
+                   username=username,
+                   year=year,
+                   month=loop.index )}}">{{ moon }}</option>
+  {% endfor %}
+</select> 
+{% from "printcalendar.html" import printcalendar %}
+{{ printcalendar(monthdays, diaries_dict) }}
+{# END CALENDAR #}
+{% if entry %}
   <h1>{{ entry.creator }}'s Diary</h1>
   <br />
   Date:
@@ -33,4 +50,5 @@
     <input type="submit" value="Delete Comment" />
   </form>
 {% endfor %}
+{% endif %}
 {% endblock %}
