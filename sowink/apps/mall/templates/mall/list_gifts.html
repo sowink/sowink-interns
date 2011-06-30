@@ -26,7 +26,9 @@
             {% for gift in gifts %}
                 <li>Title: {{ gift.title }} </br>
                     Coins: {{ gift.coins }}, WinkCash: {{ gift.winkcash }}</br>
-                    <img src="{{ gift.image }}">
+                    {% if gift.image %}
+                        <img src="{{ gift.image.url }}">
+                    {% endif %}
                     <form action='{{url('mall.buy_gift',
                                   visitee.username)}}' method="post" >
                     {{ csrf() }}
