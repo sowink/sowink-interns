@@ -14,8 +14,8 @@ def list_gifts(request, username):
     """Lists all gifts a user has received by the most recent date."""
     visitee = get_object_or_404(User, username=username)
     gifts = Gift.objects.all()
-    form = BuyGiftForm(bought_with=None, data=None)
-    
+    form = BuyGiftForm()
+
     return jingo.render(request, 'mall/list_gifts.html',
                                  {'visitee': visitee,
                                   'gifts': gifts,
@@ -36,6 +36,6 @@ def buy_gift(request, username):
     else:
         # TODO: implement to add errors to display
         # currently, User is sent back to the mall
-        form = BuyGiftForm(bought_with=bought_with, data=request.POST)
-    
+        form = BuyGiftForm()
+
     return HttpResponseRedirect(reverse('mall.list_gifts', args=[username]))

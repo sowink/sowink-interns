@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -13,6 +14,7 @@ class Gift(ModelBase):
     """Gift model used to store gifts users can send to other users."""
 
     title = models.CharField(max_length=255, unique=True)
+    image = models.ImageField(upload_to=settings.GIFT_IMAGE_PATH, blank=True)
     creator = models.ForeignKey(User)
     winkcash = models.PositiveIntegerField()
     coins = models.PositiveIntegerField()

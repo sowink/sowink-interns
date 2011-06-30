@@ -4,7 +4,7 @@ from mall.models import Gift, UserGift
 
 
 class GiftAdmin(admin.ModelAdmin):
-    fields = ['title', 'creator', 'winkcash', 'coins']
+    fields = ['title', 'image', 'creator', 'winkcash', 'coins']
 
 
 class UserGiftAdmin(admin.ModelAdmin):

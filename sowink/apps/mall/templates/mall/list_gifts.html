@@ -26,12 +26,12 @@
             {% for gift in gifts %}
                 <li>Title: {{ gift.title }} </br>
                     Coins: {{ gift.coins }}, WinkCash: {{ gift.winkcash }}</br>
+                    <img src="{{ gift.image }}">
                     <form action='{{url('mall.buy_gift',
                                   visitee.username)}}' method="post" >
                     {{ csrf() }}
                     Send Gift to: {{ visitee.username }}:<br />
                     <input type="hidden" name="creator" value="{{ user.id }}"/>
-                    <input type="hidden" name="username" value="{{ visitee.id }}"/>
                     <input type="hidden" name="recipient" value="{{ visitee.id }}"/>
                     <input type="hidden" name="gift" value="{{ gift.id }}"/>
                     <input type="submit" name="bought_coins" value="Buy with Coins">

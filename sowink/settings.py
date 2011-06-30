@@ -98,6 +98,11 @@ SUPPORTED_NONLOCALES = ['media']
 
 ## Media and templates.
 
+# Path to the directory that holds gift images for the Gift model under
+# 'apps/mall/models.py' prepended by media/.
+# Examples: "media/uploads/mall/gifts/photo.jpg"
+GIFT_IMAGE_PATH = 'uploads/mall/gifts/'
+
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = path('media')
