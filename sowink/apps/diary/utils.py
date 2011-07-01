@@ -1,6 +1,8 @@
 import datetime
-from diary.models import Diary
+
 from django.shortcuts import get_object_or_404
+
+from diary.models import Diary
 
 
 def diary_date(year=None, month=None):
@@ -17,7 +19,9 @@ def diary_date(year=None, month=None):
 
 def entries_for_user_month(user, year=None, month=None, **kwargs):
     year, month = diary_date(year, month)
-    return user.diaries.filter(created__year=year, created__month=month, **kwargs).order_by('-created')
+    return user.diaries.filter(created__year=year,
+                               created__month=month,
+                               **kwargs).order_by('-created')
 
 
 def get_kwargs_for_diary_id(diary_id):

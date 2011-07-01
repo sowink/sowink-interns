@@ -5,19 +5,26 @@
 <br />
 <select id="month_select" onchange="{window.top.location.href=this.options[this.selectedIndex].value}">
   {% for moon in months %}
-  <option 
+  <option
           {% if loop.index == month %} selected="selected" {% endif %}
           value="{{ url('diary.single',
                    username=username,
                    year=year,
                    month=loop.index )}}">{{ moon }}</option>
   {% endfor %}
-</select> 
+</select>
 {% from "printcalendar.html" import printcalendar %}
-{{ printcalendar(monthdays, diaries_dict) }}
+{{ printcalendar(monthdays, diaries) }}
 {# END CALENDAR #}
 {% if entry %}
   <h1>{{ entry.creator }}'s Diary</h1>
+  <br />
+  {% if entry.is_private %}
+    private
+  {% endif %}
+  {% if entry.is_draft %}
+    draft
+  {% endif %}
   <br />
   Date:
   <br />
@@ -33,6 +40,8 @@
 </form>
 <a href="{{ url('diary.edit', diary_id=entry.pk) }}">Edit This Diary</a>
 {% endif %}
+{% from "errorlist.html" import errorlist %}
+{{ errorlist(comment_form) }}
 <form method="post" action="{{ url('diary.reply', diary_id=entry.pk) }}">
   {{ csrf() }}
   {{ comment_form }}

@@ -1,19 +1,20 @@
-import jingo
 import datetime
 import calendar
 
-from django.views.decorators.http import require_http_methods, require_GET
+from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.template import RequestContext
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 
+import jingo
+
 from diary.models import Diary, Comment
 from diary.forms import DiaryForm, CommentForm
-from diary.utils import entries_for_user_month, diary_date, get_kwargs_for_diary_id
+from diary.utils import entries_for_user_month, \
+                        diary_date, get_kwargs_for_diary_id
 
 
 def index(request):
@@ -24,30 +25,33 @@ def index(request):
     """
     data = {}
     return jingo.render(request, 'diary/home.html', data)
-    
+
 
 def list_diaries(request, username):
     """Lists the diaries belonging to username.
-      
-    If the username is the currently logged in,
-    user displays private diaries too.
+
+    If the username is the name of the logged in user,
+    it will display drafts and private.
     If it is another user's page it only displays non-draft,
     non-private entries.
-    
+
     """
     user = get_object_or_404(User, username=username)
-    diaries = user.diaries.order_by('-created')[:5]
-
-    data = {
-            'diaries' : diaries,
-           }
+    if request.user == user:
+        diaries = user.diaries.order_by('-created')[:5]
+    else:
+        diaries = user.diaries.filter(
+                              is_draft=False,
+                              is_private=False).order_by('-created')[:5]
+    data = {'diaries': diaries,
+            'username': username}
     return jingo.render(request, 'diary/diary_list.html', data)
 
 
 def list_users(request):
     """Displays a list of users to view their diary. """
-    all_users = User.objects.all()
-    data = {'users' : all_users} 
+    users = User.objects.all()
+    data = {'users': users}
     return jingo.render(request, 'diary/diary_users.html', data)
 
 
@@ -55,24 +59,23 @@ def list_users(request):
 @require_http_methods(['GET', 'POST'])
 def new(request):
     """Create a new diary entry for today."""
-    today = datetime.datetime.today()
-    diaries = request.user.diaries.filter(created__year=today.year,
-                        created__month=today.month,
-                        created__day=today.day)
+    today = datetime.date.today()
+    diaries = request.user.diaries.filter(created_day=today)
     # If they already have a diary for today, redirect them to edit
     if diaries:
         return HttpResponseRedirect(reverse('diary.views.edit',
-                                             args=[diaries[0].pk]))
+                                            args=[diaries[0].pk]))
     if request.method == 'POST':
         form = DiaryForm(creator=request.user, data=request.POST)
         if form.is_valid():
             entry = form.save()
-            return HttpResponseRedirect(reverse('diary.views.single',
+            return HttpResponseRedirect(reverse(
+                                    'diary.views.single',
                                     kwargs=get_kwargs_for_diary_id(entry.pk)))
-    else: # request.method == 'GET'
-        form = DiaryForm(creator=request.user, 
+    else:   # request.method == 'GET'
+        form = DiaryForm(creator=request.user,
                          initial={'text': 'Start Typing Here'})
-    data = {'diaryform' : form}
+    data = {'form': form}
     return jingo.render(request,
                         'diary/new_diary.html',
                         data)
@@ -81,7 +84,7 @@ def new(request):
 @login_required
 def edit(request, diary_id):
     """Edit an existing diary view.
-    
+
     Checks and adds errors for setting a non-draft diary
     to a draft diary.
 
@@ -90,16 +93,16 @@ def edit(request, diary_id):
     if (entry.creator != request.user):
         raise PermissionDenied
     if request.method == 'POST':
-        diaryform = DiaryForm(creator=entry.creator, data=request.POST,
+        form = DiaryForm(creator=entry.creator, data=request.POST,
                               instance=entry)
-        if diaryform.is_valid():
-            diaryform.save()
-            return HttpResponseRedirect(reverse('diary.views.single',
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(reverse(
+                                    'diary.views.single',
                                     kwargs=get_kwargs_for_diary_id(entry.pk)))
     else:
-        diaryform = DiaryForm(creator=entry.creator, instance=entry)
-    data = {'diaryform': diaryform,
-            'diary': entry}
+        form = DiaryForm(creator=entry.creator, instance=entry)
+    data = {'form': form, 'entry': entry}
     return jingo.render(request, 'diary/edit_diary.html', data)
 
 
@@ -110,69 +113,71 @@ def reply(request, diary_id):
     if entry.creator != request.user and (entry.is_private or entry.is_draft):
         raise PermissionDenied()
     if request.method == 'POST':
-        form = CommentForm(creator=request.user, diary=entry, data=request.POST)
+        form = CommentForm(creator=request.user,
+                           diary=entry,
+                           data=request.POST)
         if form.is_valid():
             form.save()
-    return HttpResponseRedirect(reverse('diary.views.single',
+    return HttpResponseRedirect(reverse(
+                                     'diary.views.single',
                                      kwargs=get_kwargs_for_diary_id(entry.pk)))
 
- 
+
 @login_required
 def personal(request):
-   return list_diaries(request, username=request.user.username)
+    return list_diaries(request, username=request.user.username)
 
 
 def single(request, username, year=None, month=None, day=None):
-    """View a diary page with pk=diary_id."""
+    """View a diary page of the user with username.
+
+    Finds diary entry by using the year month and day of it.
+    If those fields are not specified, uses the current date.
+
+    """
     today = datetime.date.today()
-    if not year:
-        year = today.year
-    if not month:
-        month = today.month
+    year = year or today.year
+    month = month or today.month
     user = get_object_or_404(User, username=username)
-    year, month = diary_date(year,
-                             month)
+    year, month = diary_date(year, month)
     # Create a list of days in the month
     days_in_month = range(1, calendar.monthrange(year, month)[1] + 1)
     if request.user.username != username:
-        diaries = entries_for_user_month(user,
-                           year,
-                           month,
-                           is_private=False,
-                           is_draft=False)
+        diaries = entries_for_user_month(user, year, month,
+                                         is_private=False,
+                                         is_draft=False)
     else:
-        diaries = entries_for_user_month(user,
-                           year,
-                           month)
+        entries = entries_for_user_month(user, year, month)
     if not day:
-        day = diaries[0].created.day if diaries else today.day
+        day = entries[0].created.day if entries else today.day
         # add redirect here to update url?
 
-    diaries_dict = {}
-    for diary in diaries:
-        diaries_dict[diary.created.day] = diary
+    diaries = {}
+    for entry in entries:
+        diaries[entry.created.day] = entry
 
     try:
+        created_day = datetime.date(year, month, int(day))
         entry = Diary.objects.get(creator__username=username,
-                                  created__year=year,
-                                  created__month=month,
-                                  created__day=day)
+                                  created_day=created_day)
     except Diary.DoesNotExist:
         entry = None
-    months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    months = ['January', 'February', 'March', 'April',
+              'May', 'June', 'July', 'August',
+              'September', 'October', 'November', 'December']
     if year == today.year:
         months = months[:today.month]
     data = {'months': months,
             'monthdays': days_in_month,
-            'diaries_dict': diaries_dict,
+            'diaries': diaries,
             'month': month,
             'year': year,
             'entry': entry,
-            'username': username
-           }
-    if entry:                             
+            'username': username}
+    if entry:
         # If not owner, deny access to private or draft entries
-        if entry.creator != request.user and (entry.is_private or entry.is_draft):
+        if entry.creator != request.user and (entry.is_private or
+                                              entry.is_draft):
             raise PermissionDenied
         data['comments'] = entry.comments.all()
         data['diary'] = DiaryForm(creator=entry.creator, instance=entry)
@@ -182,28 +187,28 @@ def single(request, username, year=None, month=None, day=None):
 
 @login_required
 def delete(request, diary_id):
-    """ Deletes a diary, only if logged in user is the creator. """
+    """Deletes a diary, only if logged in user is the creator."""
     entry = get_object_or_404(Diary, pk=diary_id)
-    entry_creator = entry.creator
-    if entry_creator != request.user:
+    if entry.creator != request.user:
         raise PermissionDenied
     entry.delete()
     return HttpResponseRedirect(reverse('diary.views.list_diaries',
-                                           args=[entry_creator.username]))
+                                        args=[request.user.username]))
 
 
 @login_required
 def delete_comment(request, comment_id):
-    """ Deletes a comment from a diary.
+    """Deletes a comment from a diary.
 
-        Only deletes the comment if the logged in user is the creator of the
-        comment or of the diary.
+    Only deletes the comment if the logged in user is the creator of the
+    comment or of the diary.
 
     """
-    entry = get_object_or_404(Comment, pk=comment_id)
-    diary = entry.diary
-    if ( entry.creator != request.user ) and ( diary.creator != request.user ):
+    comment = get_object_or_404(Comment, pk=comment_id)
+    entry = comment.diary
+    if (comment.creator != request.user) and (entry.creator != request.user):
         raise PermissionDenied
-    entry.delete()
-    return HttpResponseRedirect(reverse('diary.views.single',
-                                           kwargs=get_kwargs_for_diary_id(diary.pk)))
+    comment.delete()
+    return HttpResponseRedirect(reverse(
+                                'diary.views.single',
+                                kwargs=get_kwargs_for_diary_id(entry.pk)))

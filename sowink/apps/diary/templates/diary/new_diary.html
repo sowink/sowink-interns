@@ -1,10 +1,10 @@
 {% extends "diary_base.html" %}
 {% block content %}
 {% from "errorlist.html" import errorlist %}
-{{ errorlist(diaryform) }}
+{{ errorlist(form) }}
 <form method="post" action="{{ url('diary.new') }}">
 {{ csrf() }}
-{% for field in diaryform %}
+{% for field in form %}
  {{ field.label }}
  <br />
  {{ field }}

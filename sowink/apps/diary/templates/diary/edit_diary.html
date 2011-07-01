@@ -1,23 +1,17 @@
 {% extends "diary_base.html" %}
 {% block content %}
 {% from "errorlist.html" import errorlist %}
-{{ errorlist(diaryform) }}
-<form method="post" action="{{ url('diary.edit', diary_id=diary.pk) }}">
+{{ errorlist(form) }}
+<form method="post" action="{{ url('diary.edit', diary_id=entry.pk) }}">
 {{ csrf() }}
-{# for field in diaryform %}
-   {{ field.label }}
-   <br />
-   {{ field }}
-   <br />
-{% endfor #}
-{{ diaryform.text }}
+{{ form.text }}
 <br />
-{# if diary.is_draft #}
-  {{ diaryform.is_draft.label }}
-  {{ diaryform.is_draft }}
-{# endif #}
-{{ diaryform.is_private.label }}
-{{ diaryform.is_private }}
+{% if entry.is_draft %}
+  {{ form.is_draft.label }}
+  {{ form.is_draft }}
+{% endif %}
+{{ form.is_private.label }}
+{{ form.is_private }}
 <input type="submit" value="Update" />
 </form>
 {% endblock %}

@@ -1,21 +1,6 @@
 {% extends "diary_base.html" %}
 {% block content %}
-<h1>{{ user.username }}</h1>
-<ul id="navigation">
-{#
-{{ year }}.{{ month }}
-<div id="back-button">
-  <a href="?year={{ year }}&month={{ month - 1 }}">Last month</a>
-</div>
-{% from "printcalendar.html" import printcalendar %}
-{{ printcalendar(monthdays, diaries_dict) }}
-<div id="forward-button">
-  <a href="?year={{ year }}&month={{ month + 1 }}">Next month</a>
-</div>
-{% for diary in diaries_dict %}
-  {{ diaries_dict[diary].text }}
-{% endfor %}
-#}
+<h1>{{ username }}'s Diaries</h1>
 {% for diary in diaries %}
   <br />
   <a href={{ url('diary.single',
@@ -27,6 +12,9 @@
   </a>
   {% if diary.is_private %}
     private
+  {% endif %}
+  {% if diary.is_draft %}
+    draft
   {% endif %}
   <br />
   {{ diary.text }}
