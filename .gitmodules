@@ -1,3 +1,3 @@
-[submodule "sowink/vendor"]
-	path = sowink/vendor
+[submodule "so_wink/vendor"]
+	path = so_wink/vendor
 	url = git@github.com:mariusica/sowink-interns-lib.git
