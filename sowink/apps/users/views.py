@@ -1,3 +1,5 @@
+#NOTE: temporarily pulling parts from other files making this a monolith
+
 from django.http import HttpResponseRedirect
 
 from django.contrib.auth import authenticate, login, logout
@@ -45,6 +47,42 @@ def logout_user(request):
         pass
     logout(request)
     return jingo.render(request, 'users/logout.html')
+
+#NOTE: pulled from kitsune users.utils
+def handle_register(request, email_template=None, email_subject=None,
+                    email_data=None):
+    """Handle to help registration."""
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            form = try_send_email_with_form(
+                RegistrationProfile.objects.create_inactive_user,
+                form, 'email',
+                form.cleaned_data['username'],
+                form.cleaned_data['password'],
+                form.cleaned_data['email'],
+                locale=request.locale,
+                email_template=email_template,
+                email_subject=email_subject,
+                email_data=email_data)
+            if not form.is_valid():
+                # Delete user if form is not valid, i.e. email was not sent.
+                # This is in a POST request and so always pinned to master,
+                # so there is no race condition.
+                User.objects.filter(email=form.instance.email).delete()
+        return form
+#end NOTE
+
+def register(request):
+    """Register a new user."""
+    form = handle_register(request)
+    try:
+        if form.is_valid():
+            return jingo.render(request, 'users/register_done.html')
+        return jingo.render(request, 'users/register.html',
+                            {'form': form})
+    except():
+        pass
 
 
 def user_page(request, username):

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="no-js" lang="{{ request.locale }}">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+</head>
+
+<body>
+<div id="content">
+  {% if messages %}
+    <ul class="user-messages">
+      {% for message in messages %}
+        <li {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+
+  <div id="main" role="main">
+    {% block content %}{% endblock %}
+  </div>
+</div>{# /#content #}
+
+<script src="{{ url('jsi18n') }}build:{{ BUILD_ID_JS }}"></script>
+<script src="{{ url('wafflejs') }}"></script>
+{{ js('common') }}
+{% for script in scripts %}
+{{ js(script) }}
+{% endfor %}
+
+</body>
+</html>

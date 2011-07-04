@@ -1,0 +1,22 @@
+{% extends 'livechat_base.html' %}
+{% set title = _('Live Chat') %}
+{% set scripts = ('livechat',) %}
+{% set styles = ('livechat',) %}
+
+{% block content %}
+    <article id="chat" class="main">
+        <hgroup>
+            <h1>{{ _('Live Chat') }}</h1>
+        </hgroup>
+            <div id="chatbox" style="height: 20em; overflow:auto; border: 1px solid black">
+            </div>
+            <form id="chatform">
+                <input type="hidden" name="room" id="room" value="{{ chat_id }}">
+                <input type="hidden" name="user" id="user" value="{{ user_id }}">
+                <input type="hidden" name="key" id="key" value="{{ chat_key }}">
+                <input type="hidden" name="target" id="target" value="{{ target_id }}">
+                <input type="text" name="message" id="message"/>
+                <input type="submit" name="send" id="send" value="Send"/>
+            </form>
+    </article>
+{% endblock %}

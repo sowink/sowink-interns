@@ -1,0 +1,18 @@
+{# vim: set ts=2 et sts=2 sw=2: #}
+{% extends "base.html" %}
+{% from "users/includes/macros.html" import login_form %}
+{% set title = _('Access denied') %}
+{% set styles = ('users',) %}
+
+{% block content %}
+<article id="error-page" class="main">
+  <h1>{{ title }}</h1>
+
+  <p>{{ _('You do not have permission to access this page.') }}</p>
+
+  {% if not user.is_authenticated() %}
+    <h2>{{ _('Log in') }}</h2>
+    {{ login_form(form, csrf=csrf()) }}
+  {% endif %}
+</article>
+{% endblock %}

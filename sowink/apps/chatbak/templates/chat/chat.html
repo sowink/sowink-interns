@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <article id="chat" class="main">
+    <hgroup>
+      <h1>{{ _('Live Chat') }}</h1>
+    </hgroup>
+    <section id="chat-status" data-server="{{ CHAT_SERVER }}" data-status="{{ url('chat.queue-status') }}">
+      <h1>{{ _('Checking Live Chat Status...') }}</h1>
+    </section>
+  </article>
+{% endblock %}

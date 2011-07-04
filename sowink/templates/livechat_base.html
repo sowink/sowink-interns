@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+{% for style in styles %}
+{{ css(style) }}
+{% endfor %}
+
+</head>
+
+<body>
+<div id="content">
+  <div id="main" role="main">
+    {% block content %}{% endblock %}
+  </div>
+</div>{# /#content #}
+
+{{ js('common') }}
+{% for script in scripts %}
+{{ js(script) }}
+{% endfor %}
+
+</body>
+</html>

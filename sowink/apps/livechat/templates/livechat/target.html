@@ -1,0 +1,17 @@
+{% extends 'livechat_base.html' %}
+{% set title = _('Choose Target') %}
+{% set styles = ('livechat',) %}
+
+{% block content %}
+    <article id="chat" class="main">
+        <hgroup>
+            <h1>{{ _('Choose Target') }}</h1>
+        </hgroup>
+            {{ bad_user_selection }}
+            <form id="target_form" method="post" action="livechat">
+                {{ csrf() }}
+                <input type="text" name="target" id="target"/>
+                <input type="submit" name="send" id="send" value="Send"/>
+            </form>
+    </article>
+{% endblock %}
