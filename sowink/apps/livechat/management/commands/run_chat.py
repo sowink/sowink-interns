@@ -1,22 +1,53 @@
 #TODO:
+#   -code cleanup (dbg, notes, etc)
+#       -unify var names (target_id, etc) across run_chat, views, and livechat.js
+#       -so many nested ifs and loops. consider putting stuff into functions
+#   -!!!!!! MAKE USE OF io.session.sessionid !!!!!!
+#   -right now, validates each sent message by checking chatkey against redis
+#       using verify_chat_key. Might be more efficient to use sessionid instead
+#   -keep all tabs connected, possibly setting a max number open
+#   -better presentation of connect message for when you connect (you connected)
+#   -show green dot when connection becomes active
+#   -don't tell user that I connected every single time I open a new tab
+#   -handle when user opens chat in two different places
+#       -method 1: store multiple valid chat keys that clear out on disconnect.
+#           This will require moving chat_key storage into a new redis variable
+#       -method 2: tell views.py to assign the same key to new windows if user
+#           still has at least 1 chat window open for a given chat_id. This can
+#           be accomplished by using redis increment on each open session and
+#           decrement on close, and consider key valid as long as counter > 0
+#   -raise error_occurred flags where appropriate
+#   -replace dict_has_type with dict_has_required_keys
+#   -instead of using a master_user_id variable, consider storing user_id with
+#       session in redis and grabbing it that way
+#   -make sure to unsubscribe after breaks. Find out best places for this
+#   -decide whether to lpush or rpush chatter. Important for when we retrieve
+#       chat history, as I'll likely use rpoplpush to restore the hist.
+#   -push chatter onto redis as json formatted string
+#   -get timestamps onto each message
+#   -fix auto reconnect
+#   -do test cases for the following:
+#       -user enters bad credentials (chat_key, user_id, etc) on js side
+#       -
+#------------------------------------------------------------------------------
+#FIXED Stuff (I think...):
 #   -CRITICAL ISSUE: It keeps creating new socket instances!
 #       <SocketIOServer fileno=3 address=0.0.0.0:3000>: Failed.
 #       Traceback (most recent call last):
 #         File ".../gevent/server.py", line 122, in _do_accept
 #       error: [Errno 24] Too many open files
 #
-#   -unify var names (target_id, etc) across run_chat, views, and livechat.js
+#   -Store the session_id in redis when the connection is first established.
+#   -redis publications are considered type:message, but they are different 
+#       than type:message sent from user interface. Handle this.
+#   -it takes longer to establish connection (1-2s) than before. Find out why.
 #   -make sure each message from the user contains the keys needed to authorize
 #       each message: user_id, target_id, chat_id, chat_key
 #   -make sure user is who they say they are, mostly for display purposes.
 #       consider putting their username into redis and checking against chat_key
-#   -make sure all keys are present to prevent key errors
 #   -authorize all messages before sending them
-#   -right now, validates each sent message by checking chatkey against redis
-#       using verify_chat_key. Might be more efficient to use session id instead
+#   -make sure all keys are present to prevent key errors
 #   -handle disconnect errors that greenlet keeps giving (broken pipe)
-#   -handle when user opens chat in two different places
-#
 #   -right now, there is a greenlet listener and a seperate thing for sending
 #       messages. If the greenlet listener drops, they can still send messages
 #       but not receive them. For example, if they navigate away from the page 
@@ -45,11 +76,8 @@
 #           -find a way to kill the greenlet listener altogether. But I have no
 #               idea how since disconnects are not being detected and I can't
 #               catch the greenlet 'broken pipe' exceptions
-#
 #   -Store the session_id in redis when the connection is first established.
-#   -redis publications are considered type: message, but they are different than
-#       type: message sent from user interface. Handle this.
-#   -it takes longer to establish connection (1-2s) than before. Find out why.
+
 
 # Make blocking calls in socket lib non-blocking before anybody else grabs the
 # socket lib:
@@ -60,6 +88,7 @@ from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.cache import cache
 from django.core.management.base import NoArgsCommand
+from django.http import HttpResponse, HttpResponseRedirect
 
 from socketio import SocketIOServer
 from livechat.views import redis_client, check_user_valid, verify_chat_key
@@ -69,41 +98,47 @@ from redis import Redis
 import simplejson as json
 
 #dbg:
-import inspect
-global_debug_counter = 1
-session_io_list = list()
-last_socketio = None
+# import inspect
+# global_debug_counter = 1
+# session_io_list = list()
+# last_socketio = None
 #end dbg
 #dbg:     import pdb; pdb.set_trace()
 
 def indent(level):
     indents = ['\t' for i in range(level)]
     return ''.join(indents)
-    
-def authorize_msg_dest():
-    pass
 
+#NOTE: this can be absorbed into dict_has_required_keys by creating a definition
+#   for 'type' and making sure the dict has a type field. Once this is done,
+#   replace all refs to this.
 def dict_has_type(d):
     if 'type' in d.keys():
         return True
     return False
     
 #given a dict d, check if it has all the keys required for a given type
+#NOTE: need to add definition for message (from redis version)
 def dict_has_required_keys(d, type):    
-    # type requirements
+    # type requirement definitions. dicts of a given type must have these keys
     reqs = dict()
-    reqs['message']=['type','chat_id','user_id','target','chat_key','payload']
+    reqs['chatter']=['type','chat_id','user_id','target','chat_key','payload']
     reqs['joined'] = ['type', 'chat_id', 'user_id', 'target', 'chat_key']
+    reqs['reconnect'] = reqs['joined']
+    reqs['disconnect'] = reqs['joined']
+    reqs['subscribe'] = ['pattern', 'type', 'channel', 'data'] # redis notice
+    reqs['message'] = reqs['subscribe'] # redis message
+    reqs['auth'] = ['type','chat_id','user_id','chat_key'] # general auth
+    reqs['has_type'] = ['type']
 
     #check if there is a definition for the passed type
     if type not in reqs:
         return False
-
+    #check if the passed dict has all the fields required for it's claimed type
     result = [field for field in reqs[type] if field in d]
     if result == reqs[type]:
         return True
     return False
-
 
 def application(environ, start_response):
 #dbg:
@@ -115,13 +150,13 @@ def application(environ, start_response):
 #     if last_socketio is None:
 #         last_socketio = environ['socketio'].__repr__()
 #         
-#     if last_socketio is not environ['socketio'].__repr__():
-#         print "a new socketio was created for some reason!"
+#     if last_socketio != environ['socketio'].__repr__():
+#         print "a new socketio was created!"
 #         print environ['socketio'].__repr__()
 #     if environ['socketio'] not in session_io_list:
 #         session_io_list.append(environ['socketio'].__repr__())
 #     
-#     print str(len(session_io_list)), "socketio objs created so far"
+#    print str(len(session_io_list)), "socketio objs created so far"
 #     
 #     #print call stack
 #     for idx, caller in enumerate(inspect.stack()):
@@ -134,9 +169,7 @@ def application(environ, start_response):
 #end dbg
 
     path = environ['PATH_INFO'].strip('/')
-
     if path.startswith('socket.io'):
-        #dbg: print inspect.getmembers(environ['socketio'])    
         django_response = chat_socketio(environ['socketio'])
 
         # TODO: Do something rather than this stubbed-in 200:
@@ -148,23 +181,28 @@ def application(environ, start_response):
 
 
 def chat_socketio(io):
-    #dbg: print session each chat_socketio call (apparently once per server hit)
-    print "chat_socketio:", io.session
+    #dbg:
+    print "chat_socketio begin!"
     #end dbg
     
     CHANNEL = 'world'
+    master_user_id = None #needed for disconnect messages, though I suppose I
+        #can grab it from redis if I store user_id with session_id. Thats what
+        #they did at mozilla...
     error_occurred = False
 
     def subscriber(io):
         try:
             redis_in = redis_client('livechat')
-            print "subscribing to channel", CHANNEL
             redis_in.subscribe(CHANNEL)
+            print "subscribing to channel", CHANNEL
             redis_in_generator = redis_in.listen()
         
             # io.connected() never becomes false for some reason.
             while io.connected():
-                print "subscriber ioconnected loop"
+                #dbg:
+                print "in subscriber while io.connected() loop"
+                #end dbg
                 for from_redis in redis_in_generator:
                     print 'SESSION %s -- Incoming: %s' % (io.session.session_id,
                                                             from_redis)
@@ -173,172 +211,251 @@ def chat_socketio(io):
                     if not dict_has_type(from_redis):
                         print "\tfrom_redis has no 'type' field!"
                         break
+                    
+                    #NOTE: is there any danger of type being overwritten later?
+                    type = str(from_redis['type'])
 
                     # check if session is still valid. Also kill this greenlet
-                    #   listener if session expired.
-                    # NOTE: remember to kill the listener!
+                    #   listener if session expired or just unsubscribe.
+                    #NOTE: this shouldnt work without a chat_id, user_id...
+                    #NOTE: I'll want to change this as soon as we allow multiple
+                    #   simultaneous chat windows
                     latest_session = redis_client('livechat').hget(
                         '{u}_creds_{c}'.format(c=chat_id, u=user_id),
                         'latest_session')
                     if str(latest_session) != str(io.session.session_id):
                         print "\tThis session is expired."
-                        #NOTE: tell user this chat window is no longer active,
-                        #   then kill the listener
+                        io.send('your chat session has expired.')
+                        redis_client('livechat').unsubscribe()
                         break
 
-                    # verify it has the required fields for whatever type it is
-                    #   claiming to be
-                    if not dict_has_required_keys( from_redis,
-                    from_redis['type'] ):
+                    # verify it has the required fields for it's alleged type
+                    if not dict_has_required_keys( from_redis, type ):
                         print('\tfrom_redis is missing required fields for '
-                                'type %s' % from_redis['type'])
+                                'type %s' % type)
 
                     # finally, send message when all is good
-                    if from_redis['type'] == 'message':
+                    if type == 'message':
+                        print "subscriber received a redis message iorecv"
                         io.send(from_redis['data'])
         finally:
             print "EXIT SUBSCRIBER %s" % io.session
 
-    #print message when first connection established
+    # print message when connection established. This point shoudld only be
+    #   reached once. after that, it goes to main loop
     if io.on_connect():
         print "CONNECT %s" % io.session
-    else: 
-        # I'll assume this is just a regular server hit but make sure to stress
-        #   test it, as it might be creating a new iosocket instance on each hit
-        pass
-        #dbg: message = io.recv()
-        #dbg: print "io.recv %s" % message
+    else:
+        print "SOMETHING OTHER THAN CONNECT!" # Shouldn't, if code is healthy...
 
-    #TAG: rangeloop (I refer to in dbg messages)
-    #TODO: double check that all break statements are needed/in the right place
+    #NOTE: -double check that all break statements are needed/in the right place
+    #      -examine behavior of the error_occurred flag, and make sure they are
+    #           where they need to be
+    #TAG: joinloop (I refer to in dbg messages)
     for i in range(0, 20):
         recv = io.recv()
         if recv:
-            recv_json = json.loads(recv[0])
+            joinmsg = json.loads(recv[0])
 
-            # make sure recv_json has a type
-            if not dict_has_type(recv_json):
-                print "rangeloop received a typeless iorecv"
+            # make sure joinmsg has a type
+            #NOTE: replace this with dict_has_required_keys
+            if not dict_has_type(joinmsg):
+                error_occurred = True
+                print "joinloop received a typeless iorecv"
+                print "joinmsg fields = ",joinmsg.keys()
+                print "joinmsg vals = ",joinmsg.values()
                 break
+
+            #NOTE: is there any danger of type being overwritten later?    
+            type = str(joinmsg['type'])
             
             # do a required_keys check for type before proceeding
-            if not dict_has_required_keys(recv_json, recv_json['type']):
-                print ("rangeloop received a " + str(recv_json['type']) + 
-                        " type iorecv, but was missing fields for that type!")
+            if not dict_has_required_keys(joinmsg, type):
+                error_occurred = True
+                print "joinloop: iorecv with missing fields for type %s" % type
+                print "joinmsg fields = ",joinmsg.keys()
+                print "joinmsg vals = ",joinmsg.values()
                 break
-                
-            #NOTE: might be worth putting a user validation check here before
-            #   proceeding to next steps
             
-            if recv_json['type'] == 'joined':
-                print "rangeloop received a joined iorecv"
-                print "recv_json fields = ",recv_json.keys()
-                print "recv_json vals = ",recv_json.values()
-                
-                chat_key = recv_json['chat_key']
-                user_id = recv_json['user_id']
-                chat_id = recv_json['chat_id']
-                
+            # validate user's chat key before continuing. Two step process:
+            #   -make sure this recv has the fields needed for auth
+            #   -verify_chat_key using said fields
+            #NOTE: figure out what to tell the user when auth fails. When this
+            #   routine was in the type check blocks, it would print context
+            #   specific messages. Now it needs to raise a flag or something.
+            #   if I do it this way, don't break on failed verify here. Let the
+            #   type check blocks handle sending message and breaking.
+            if not dict_has_required_keys(joinmsg, 'auth'):
+                error_occurred = True
+                print 'trying to do auth, but required fields were not passed'
+                print "joinmsg fields = ",joinmsg.keys()
+                print "joinmsg vals = ",joinmsg.values()
+                break
+            #Grab fields required to do auth
+            chat_key = joinmsg['chat_key']
+            user_id = joinmsg['user_id']
+            chat_id = joinmsg['chat_id']
+            if not verify_chat_key(chat_key, user_id, chat_id):
+                error_occurred = True
+                io.send('sorry, an error occurred. Try refreshing the page')
+                print 'User\'s chat_key failed auth test'
+                break
 
-                #verify chat key
-                if not verify_chat_key(chat_key, user_id, chat_id):
-                    error_occurred = True
-                    io.send('Error joining chat. Try reloading the page.)')
-                    print('Error joining chat. '
-                    'Are you trying to break something? ;)')
-                    break
+            #otherwise, continue with grabbing fields
+            #NOTE: consider storing session and user_id in redis instead
+            master_user_id = user_id
+            CHANNEL = chat_id
+            username = redis_client('livechat').get(
+                    'name_for_uid_{u}'.format(u=joinmsg['user_id']) )
 
+            if type == 'joined' or type == 'reconnect':
+                print "joinloop received a joined iorecv"
+                print "joinmsg vals = ",joinmsg.values()
+                                
                 # register session_id in redis under this users chat creds hash
+                #NOTE: might not need this anymore, but leaving it till I'm sure
+                #   Also, I might want to do it the other way around, and 
+                #   check if session is valid rather than storing the session
                 redis_client('livechat').hset(
                     '{u}_creds_{c}'.format(c=chat_id, u=user_id),
                     'latest_session',
                     io.session.session_id)
 
-                # get channel
-                CHANNEL = recv_json['chat_id']
-                # spawn a listener for this CHANNEL:
+                # spawn a listener for this instance:
                 in_greenlet = Greenlet.spawn(subscriber, io)
 
-                # get username from redis and publish connection notice
-                username = redis_client('livechat').get(
-                    'name_for_uid_{u}'.format(u=recv_json['user_id']) )
+                # publish connection notice
+                #NOTE: fix so that it only publishes notice on first connection
+                #   We don't want to know each time a chat window is opened up.
                 redis_client('livechat').publish(
                     CHANNEL,
                     '%s has joined' % username)
                 break
-                
-            elif recv_json['type'] == 'message':
-                print "rangeloop received a message iorecv"                
-                print "recv_json fields = ",recv_json.keys()
-                print "recv_json vals = ",recv_json.values()
- 
-                chat_key = str(recv_json['chat_key'])
-                user_id = str(recv_json['user_id'])
-                CHANNEL = chat_id = str(recv_json['chat_id'])
-                payload = str(recv_json['payload'])
- 
-                #verify chat key
-                if not verify_chat_key(chat_key, user_id, chat_id):
-                    error_occurred = True
-                    io.send('sorry, your message was not sent.')
-                    print('sorry, your message was not sent.'
-                    'Are you trying to break something? ;)')
-                    break
-                
-                # get username from redis and publish connection notice
-                username = str( redis_client('livechat').get(
-                    'name_for_uid_{u}'.format(u=user_id) ) )                   
-                print "publishing to channel %s" % CHANNEL
-                redis_client('livechat').publish(
-                    CHANNEL,
-                    "%s: %s" % (username, payload) )
-                break
             else:
-                print "rangeloop received an unanticipated iorecv"
+                error_occurred = True
+                print "joinloop got an unexpected joinmsg of type %s" % type
+                print "joinmsg fields = ",joinmsg.keys()
+                print "joinmsg vals = ",joinmsg.values()
                 break
                 
         if i == 20:
             error_occurred = True
             print "error occurred: i = 20"
-        
-    #dbg: check if io is connected still
-#     if io.connected():
-#         print "still connected"
-#     else:
-#         print "no longer connected"
-    #end dbg
-
-    #NOTE: doesn't seem to ever get to this point after io.on_connect() happens
-
+    
+    #dbg:
+    print "subscriber loop is done"
+    #end debug
+    
     # Until the client disconnects, listen for input from the user:
+    #TAG: mainloop
     while io.connected() and not error_occurred:
         #dbg:
-        print "\tother ioconnected loop"
+        print "in mainloop (while io.connected())"
         #end dbg
         
-        message = io.recv()
-        if message:  # Always a list of 0 or 1 strings, I deduce from the source code
-            print "io.recv (other ioconnected) %s" % message            
-            to_redis = json.loads(message[0])
-            # On the chance that a user disconnects (loss of internet) and socketio
-            # autoreconnects, a new session_id is given. However, the nonce is still
-            # the same since the page hasn't been reloaded. There's a slim case where
-            # getting the username via nonce fails (expired), so the username defaults
-            # to the session ID, at the moment.
-            # TODO: In the above case, XHR request a new nonce and update?
-            # TODO: Replace flat strings with JSON objects (etc). 
-            if to_redis['type'] == 'joined':  # Runs on reconnect
-                #this used to take to_redis['payload'] (aka nonce)
-                #if map_sid_to_nick(to_redis['payload'], io.session.session_id) is False:
-                #    io.send('You have been disconnected for inactivity. Please refresh the page.')
-                #    break
-                if not verify_chat_key(joinmsg['chat_key'], 
-                joinmsg['user_id'], joinmsg['chat_id']):
-                    io.send('Error joining chat. '
-                    'Are you trying to break something? ;)')                    
-            else:
-                print 'Outgoing: %s' % to_redis
-                redis_client('livechat').publish(CHANNEL, "USERIDPLACEHOLDER" + ': ' + to_redis['payload'])
+        recv = io.recv()
+        if recv: #Always a list of 0 or 1 strings, I deduce from the source code
+            to_redis = json.loads(recv[0])
+
+            # make sure to_redis has a type
+            if not dict_has_type(to_redis):
+                error_occurred = True
+                print "mainloop received a typeless iorecv!"
+                print "to_redis fields = ",to_redis.keys()
+                print "to_redis vals = ",to_redis.values()
+                break
+
+            # do a required_keys check for type before proceeding
+            if not dict_has_required_keys(to_redis, to_redis['type']):
+                error_occurred = True
+                print "mainloop: iorecv with missing fields for type %s" % type
+                print "to_redis fields = ",to_redis.keys()
+                print "to_redis vals = ",to_redis.values()
+                break
+
+            # validate user's chat key before continuing. Two step process:
+            #   -make sure this recv has the fields needed for auth
+            #   -verify_chat_key using said fields
+            #NOTE: figure out what to tell the user when auth fails. When this
+            #   routine was in the type check blocks, it would print context
+            #   specific messages. Now it needs to raise a flag or something.
+            #   if I do it this way, don't break on failed verify here. Let the
+            #   type check blocks handle sending message and breaking.
+            if not dict_has_required_keys(to_redis, 'auth'):
+                error_occurred = True
+                print 'trying to do auth, but required fields were not passed'
+                print "joinmsg fields = ",to_redis.keys()
+                print "joinmsg vals = ",to_redis.values()
+                break
+            #Grab fields required to do auth
+            chat_key = to_redis['chat_key']
+            user_id = to_redis['user_id']
+            chat_id = to_redis['chat_id']
+            if not verify_chat_key(chat_key, user_id, chat_id):
+                error_occurred = True
+                io.send('sorry, an error occurred. Try refreshing the page')
+                print 'User failed validation'
+                break
+
+            #otherwise, continue with grabbing fields
+            #NOTE: consider storing session and user_id in redis instead
+            master_user_id = user_id
+            CHANNEL = chat_id
+            username = redis_client('livechat').get(
+                    'name_for_uid_{u}'.format(u=user_id) )
+
+            #NOTE: what's the point of this block?
+            if to_redis['type'] == 'reconnect':
+                print "mainloop received a reconnect iorecv"
+                print "to_redis vals = ",to_redis.values()
+                payload = str(to_redis['payload'])
+                
+                #NOTE: if I raise a flag on bad user auth above, then handle
+                #   printing context specific message to user and breaking here
+
+#                 if not verify_chat_key(chat_key, user_id, chat_id):
+#                     error_occurred = True
+#                     io.send('Error joining chat. Try reloading the page.)')
+#                     print('Error joining chat. '
+#                     'Are you trying to break something? ;)')
+#                     break
+                    
+            #NOTE: this looks like a good place to do a session check...
+            
+            #NOTE: remember to lpush the chatter onto redis (chat_id:$chat_id)
+            elif to_redis['type'] == 'chatter':
+                print "mainloop received a chatter iorecv"  
+                print "to_redis vals = ",to_redis.values()
+                payload = str(to_redis['payload'])
+ 
+                #NOTE: if I raise a flag on bad user auth above, then handle
+                #   printing context specific message to user and breaking here
+
+#                 if not verify_chat_key(chat_key, user_id, chat_id):
+#                     error_occurred = True
+#                     io.send('sorry, your message was not sent.')
+#                     print('sorry, your message was not sent.'
+#                     'Are you trying to break something? ;)')
+#                     break
+                
+                #NOTE: remember to make a timestamp as well
+                # publish chatter and lpush
+                print 'Channel:: %s Outgoing to Redis: %s' % (CHANNEL, to_redis)
+                redis_client('livechat').publish(
+                    CHANNEL, "{u}: {p}".format(u=username, p=payload) )
+                #NOTE: Replace strings with JSON objects and store timestamps
+                #   Also, consider storing user_id in case username ever changes
+                #   in the future.
+                redis_client('livechat').lpush(
+                    'chat_id:{c}'.format(c=chat_id),
+                    '{u}: {p}'.format(u=username, p=payload) )
+                    
+            else: #NOTE: should I break here? should I raise an error?
+                error_occurred = True
+                print "mainloop: unexpected recv of type %s" % to_redis['type']
+                print "to_redis fields = ",to_redis.keys()
+                print "to_redis vals = ",to_redis.values()
+                break
 
     print "EXIT %s" % io.session
 
@@ -346,15 +463,29 @@ def chat_socketio(io):
         print "ERROR OCCURED!!!"
 
     # Clean up cache.
+    #NOTE: should probably purge $uid_creds_$chatid, name_for_uid_$uid
+    #   Also, maybe I should just purge this after I have published all the
+    #   messages I need, so that I don't have to grab from redis again...
     #redis_client('livechat').delete(io.session.session_id)
 
     # Each time I close the 2nd chat window, wait for the old socketio() view
     # to exit, and then reopen the chat page, the number of Incomings increases
     # by one. The subscribers are never exiting. This fixes that behavior:
-    in_greenlet.kill()
+    try:
+        in_greenlet.kill()
+    except:
+        print "final: no Greenlet to kill"
 
-    redis_client('livechat').publish(CHANNEL, "USERIDPLACEHOLDER" + ' has disconnected')
-
+    
+    #NOTE: if volatiles are cleaned up above, then I'll need to have grabbed the
+    #   user_id and put it somewhere persistent. Consider using redis to store
+    #   the user_id with the session_id ahead of time. Or better yet, wait till
+    #   after this point to purge volatiles. yea, that's what I'll do.
+    #   Also, don't forget to replace master_user_id below
+    redis_client('livechat').publish(CHANNEL, '%s has disconnected' % master_user_id)
+    #dbg:
+    print "printing disconnect message on channel %s" % CHANNEL
+    #end dbg
     return HttpResponse()
 
 
@@ -364,4 +495,4 @@ class Command(NoArgsCommand):
     def handle_noargs(self, *args, **kwargs):
         """Turn this process into the chat server."""
         print 'Listening on http://127.0.0.1:%s and on port 843 (flash policy server)' % settings.CHAT_PORT
-        SocketIOServer(('', settings.CHAT_PORT), application, resource='socket.io', policy_server=False).serve_forever()
+        SocketIOServer(('', settings.CHAT_PORT), application, resource='socket.io', policy_server=True).serve_forever()

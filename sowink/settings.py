@@ -189,7 +189,7 @@ MINIFY_BUNDLES = {
             'js/chat.js',
         ),
         'livechat': (
-            'js/libs/socket.io.js',
+            #'js/libs/socket.io.js',
             'js/livechat.js',
         ),
     }

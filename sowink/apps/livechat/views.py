@@ -7,6 +7,10 @@
 #       another, but won't stop someone from intercepting keys by sniffing.
 #       Consider using https
 #   -consider different capitalization for fns vs vars to improve readability
+#   -when I open a chat and inspect with firebug, net shows that something is
+#       referencing looking for http://localhost:8000/socket.io/lib/
+#                                       vendor/web-socket-js/WebSocketMain.swf
+#       figure out what is doing this and why
 import random
 import re
 import hashlib
