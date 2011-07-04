@@ -2,7 +2,7 @@
 #   -code cleanup (dbg, notes, etc)
 #       -unify var names (target_id, etc) across run_chat, views, and livechat.js
 #       -so many nested ifs and loops. consider putting stuff into functions
-#   -!!!!!! MAKE USE OF io.session.sessionid !!!!!!
+#   -!!!!!! MAKE USE OF io.session.session_id !!!!!!
 #   -right now, validates each sent message by checking chatkey against redis
 #       using verify_chat_key. Might be more efficient to use sessionid instead
 #   -keep all tabs connected, possibly setting a max number open
@@ -26,6 +26,8 @@
 #   -push chatter onto redis as json formatted string
 #   -get timestamps onto each message
 #   -fix auto reconnect
+#   -Check user's provided chat_key against what is stored in redis. Will be
+#       more efficient this way.
 #   -do test cases for the following:
 #       -user enters bad credentials (chat_key, user_id, etc) on js side
 #       -
@@ -220,14 +222,14 @@ def chat_socketio(io):
                     #NOTE: this shouldnt work without a chat_id, user_id...
                     #NOTE: I'll want to change this as soon as we allow multiple
                     #   simultaneous chat windows
-                    latest_session = redis_client('livechat').hget(
-                        '{u}_creds_{c}'.format(c=chat_id, u=user_id),
-                        'latest_session')
-                    if str(latest_session) != str(io.session.session_id):
-                        print "\tThis session is expired."
-                        io.send('your chat session has expired.')
-                        redis_client('livechat').unsubscribe()
-                        break
+#                     latest_session = redis_client('livechat').hget(
+#                         '{u}_creds_{c}'.format(c=chat_id, u=user_id),
+#                         'latest_session')
+#                     if str(latest_session) != str(io.session.session_id):
+#                         print "\tThis session is expired."
+#                         io.send('your chat session has expired.')
+#                         redis_client('livechat').unsubscribe()
+#                         break
 
                     # verify it has the required fields for it's alleged type
                     if not dict_has_required_keys( from_redis, type ):
@@ -312,14 +314,21 @@ def chat_socketio(io):
                 print "joinloop received a joined iorecv"
                 print "joinmsg vals = ",joinmsg.values()
                                 
-                # register session_id in redis under this users chat creds hash
-                #NOTE: might not need this anymore, but leaving it till I'm sure
-                #   Also, I might want to do it the other way around, and 
-                #   check if session is valid rather than storing the session
-                redis_client('livechat').hset(
-                    '{u}_creds_{c}'.format(c=chat_id, u=user_id),
-                    'latest_session',
-                    io.session.session_id)
+                # register sessionid in redis along with users chat_key
+                #NOTE: also store count of how many connections user has open
+                #   on a given channel. That way, we only publish dis/connect
+                #   messages if count = 0
+                redis_client('livechat').set(
+                    'session_{s}_key'.format(s=io.session.session_id),
+                    chat_key)
+                print 'registering session %s' % io.session.session_id
+                redis_client('livechat').hset('{u}_keys_to_{c}'.format(
+                    c=chat_id, u=user_id),
+                    chat_key, "used")
+                print 'marking key as used %s' % chat_key
+                active_chats = redis_client('livechat').incr(
+                    '{u}_active_{c}'.format(c=chat_id, u=user_id) )
+                print '(open){u}_active_{c} count: {a}'.format(c=chat_id, u=user_id, a=active_chats)
 
                 # spawn a listener for this instance:
                 in_greenlet = Greenlet.spawn(subscriber, io)
@@ -327,9 +336,10 @@ def chat_socketio(io):
                 # publish connection notice
                 #NOTE: fix so that it only publishes notice on first connection
                 #   We don't want to know each time a chat window is opened up.
-                redis_client('livechat').publish(
-                    CHANNEL,
-                    '%s has joined' % username)
+                if active_chats == 1:
+                    redis_client('livechat').publish(
+                        CHANNEL,
+                        '%s has joined' % username)
                 break
             else:
                 error_occurred = True
@@ -440,7 +450,7 @@ def chat_socketio(io):
                 
                 #NOTE: remember to make a timestamp as well
                 # publish chatter and lpush
-                print 'Channel:: %s Outgoing to Redis: %s' % (CHANNEL, to_redis)
+                print 'Channel::%s, Outgoing to Redis: %s' % (CHANNEL, to_redis)
                 redis_client('livechat').publish(
                     CHANNEL, "{u}: {p}".format(u=username, p=payload) )
                 #NOTE: Replace strings with JSON objects and store timestamps
@@ -462,8 +472,9 @@ def chat_socketio(io):
     if error_occurred:
         print "ERROR OCCURED!!!"
 
-    # Clean up cache.
+    # Clean up volatiles
     #NOTE: should probably purge $uid_creds_$chatid, name_for_uid_$uid
+    #   Also, remove the key from list of valids
     #   Also, maybe I should just purge this after I have published all the
     #   messages I need, so that I don't have to grab from redis again...
     #redis_client('livechat').delete(io.session.session_id)
@@ -482,10 +493,29 @@ def chat_socketio(io):
     #   the user_id with the session_id ahead of time. Or better yet, wait till
     #   after this point to purge volatiles. yea, that's what I'll do.
     #   Also, don't forget to replace master_user_id below
-    redis_client('livechat').publish(CHANNEL, '%s has disconnected' % master_user_id)
-    #dbg:
-    print "printing disconnect message on channel %s" % CHANNEL
-    #end dbg
+
+    
+    # remove key from this user's list of valid keys
+    key_to_purge = redis_client('livechat').get('session_{s}_key'.format(s=io.session.session_id) )
+    redis_client('livechat').hdel('{u}_keys_to_{c}'.format(u=master_user_id, c=CHANNEL), key_to_purge)
+    print "removing key %s" % key_to_purge
+
+    # remove session
+    redis_client('livechat').delete('session_{s}_key'.format(s=io.session.session_id) )
+    print "removing session %s" % io.session.session_id
+
+    # decrement active chat counter
+    active_chats = redis_client('livechat').decr(
+        '{u}_active_{c}'.format(c=CHANNEL, u=master_user_id) )
+    print '(close){u}_active_{c} count: {a}'.format(c=CHANNEL, u=master_user_id, a=active_chats)
+
+    # publish disconnect msg if last remaining open chat for user in this room
+    # should happen when counter = 1
+    if active_chats == 0:
+        username = redis_client('livechat').get('name_for_uid_{u}'.format(u=master_user_id) )
+        redis_client('livechat').publish(CHANNEL, '%s has disconnected' % username)
+        print "printing disconnect message on channel %s" % CHANNEL
+    
     return HttpResponse()
 
 

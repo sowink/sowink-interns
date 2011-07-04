@@ -81,11 +81,17 @@ def livechat(request):
     chat_id = generate_chat_id( [user_id, target_id] )
     
     #register chat key with redis
+    #NOTE: figure out a way to clear the key in case it never gets used for some
+    #   reason. Basically, create the key, register it, then mark it as init.
+    #   then, when the session actually gets attached, mark it as used
     chat_key = generate_chat_key( [user_id, target_id], '68LC040' )
-    redis_client('livechat').hset(
-                                '{u}_creds_{c}'.format(c=chat_id, u=user_id),
-                                'chat_key',
-                                chat_key)
+    redis_client('livechat').hset('{u}_keys_to_{c}'.format(c=chat_id, u=user_id),
+                                 chat_key, "init")
+#     redis_client('livechat').hset(
+#                                 '{u}_creds_{c}'.format(c=chat_id, u=user_id),
+#                                 'chat_key',
+#                                 chat_key)
+    
     
     #register user_id->username in redis
     username = str(User.objects.get(id=user_id).username)
@@ -178,18 +184,15 @@ def check_user_valid(requested_chat_id, user_id, target_id):
 #         return False
 
 def verify_chat_key(provided_key, user_id, chat_id):
-    required_key = redis_client('livechat').hget(
-        '{u}_creds_{c}'.format(c=chat_id, u=user_id),
-        'chat_key'
-        )
-    if required_key == provided_key:
+    b_key_valid = redis_client('livechat').hget(
+        '{u}_keys_to_{c}'.format(c=chat_id, u=user_id),
+        provided_key)
+    if b_key_valid in ['init', 'used']:
         return True
     else:
         print "------------------------------"
-        print "KEYS DON'T MATCH!"
-        print provided_key
-        print "vs"
-        print required_key
+        print "KEY IS NOT REGISTERED!"
+        print provided_key, "RETURNS", str(b_key_valid)
         return False
     
 
