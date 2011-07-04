@@ -1,6 +1,8 @@
 # Django settings file for a project based on the playdoh template.
 #TODO:  handle replacement of SUMO resources
 #       revisit "#NOTE" sections
+#       LOGIN_URL
+#       reconcile changes with master branch
 
 import os
 import platform
@@ -158,8 +160,11 @@ def JINJA_CONFIG():
 # and js files that can be bundled together by the minify app.
 MINIFY_BUNDLES = {
     'css': {
-        'chat_css': (
+        'chat': (
             'css/chat.css',
+        ),
+        'livechat': (
+            'css/livechat.css',
         ),
         'diary_css': (
             'css/diary.css',
@@ -169,19 +174,24 @@ MINIFY_BUNDLES = {
         ),
     },
     'js': {
-#comment all these js till I add them
-#         'common': (
-# #            'js/i18n.js',
-#             'js/libs/jquery.min.js',
-#             'js/libs/modernizr-1.7.js',
-#             'js/libs/jquery.cookie.js',
-#             'js/libs/jquery.placeholder.js',
-#             'js/kbox.js',
-# #            'global/menu.js',
-#             'js/main.js',
-#             'js/format.js',
-#             'js/loadtest.js',
-#         ),
+         'common': (
+             'js/libs/jquery.min.js',
+             'js/libs/modernizr-1.7.js',
+             'js/libs/jquery.cookie.js',
+             'js/libs/jquery.placeholder.js',
+             #'js/main.js',
+         ),
+        'libs/jqueryui': (
+            'js/libs/jqueryui.min.js',
+        ),
+        'chat': (
+            'js/libs/socket.io.js',
+            'js/chat.js',
+        ),
+        'livechat': (
+            'js/libs/socket.io.js',
+            'js/livechat.js',
+        ),
     }
 }
 
@@ -202,16 +212,21 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = '%s.urls' % ROOT_PACKAGE
 
+# Auth and permissions related constants
+LOGIN_URL = '/login'
+REGISTER_URL = '/register'
+
 INSTALLED_APPS = (
     # Local apps
-#    'chat',     # beginnings of a chat app. commented out for now
+    'chat',     # beginnings of a chat app based on kitsune
     'commons',  # Content common to most playdoh-based apps.
     'diary',
     'jingo_minify',
+    'livechat', # new chat app that borrows the relevant parts from kitsune
     'messages',
     'msgs',
     'play1',    # sample for including external styles
-#    'sumo',    #commenting out for now
+    'sumo',
     'tower',  # for ./manage.py extract (L10n)
     'users',
 
@@ -278,11 +293,13 @@ HMAC_KEYS = {  # for bcrypt only
 
 #NOTE: borrowed from mozilla
 # URL of the chat server.
-CHAT_SERVER = 'http://localhost'
-CHAT_CACHE_KEY = 'sowink-chat-queue-status'
+# CHAT_SERVER = 'http://localhost'
+# CHAT_CACHE_KEY = 'sowink-chat-queue-status'
 # New settings for Python implementation of chat:
 CHAT_PORT = 3000
 #end NOTE
+
+LIVE_CHAT_PORT = 3000
 
 ## Tests
 TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
@@ -296,3 +313,15 @@ BROKER_VHOST = 'playdoh'
 BROKER_CONNECTION_TIMEOUT = 0.1
 CELERY_RESULT_BACKEND = 'amqp'
 CELERY_IGNORE_RESULT = True
+
+#NOTE: kitsune
+# Directory of JavaScript test files for django_qunit to run
+QUNIT_TEST_DIRECTORY = os.path.join(MEDIA_ROOT, 'js', 'tests')
+
+# redis backend from kitsune settings.
+REDIS_BACKENDS = {
+    'chat': 'redis://localhost:6379?socket_timeout=0.5&db=0',
+    'livechat': 'redis://localhost:6379?socket_timeout=0.5&db=0',
+}
+#end NOTE
+
