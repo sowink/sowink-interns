@@ -1,22 +1,48 @@
 {% extends 'livechat_base.html' %}
 {% set title = _('Live Chat') %}
 {% set scripts = ('livechat',) %}
-{% set styles = ('livechat',) %}
 
 {% block content %}
-    <article id="chat" class="main">
-        <hgroup>
-            <h1>{{ _('Live Chat') }}</h1>
-        </hgroup>
-            <div id="chatbox" style="height: 20em; overflow:auto; border: 1px solid black">
-            </div>
-            <form id="chatform">
-                <input type="hidden" name="room" id="room" value="{{ chat_id }}">
-                <input type="hidden" name="user" id="user" value="{{ user_id }}">
-                <input type="hidden" name="key" id="key" value="{{ chat_key }}">
-                <input type="hidden" name="target" id="target" value="{{ target_id }}">
-                <input type="text" name="message" id="message"/>
-                <input type="submit" name="send" id="send" value="Send"/>
-            </form>
-    </article>
+<article id="chat" class="main">
+    <hgroup>
+        <h1>{{ _('Live Chat') }}</h1>
+    </hgroup>
+
+        <form id="targetForm">
+            <input type="hidden" name="my_ctl_priv" id="my_ctl_priv" value="{{ my_ctl_priv }}">
+            <input type="hidden" name="user" id="user" value="{{ user_id }}">
+            <input type="hidden" name="key" id="key" value="{{ my_ctl_priv_key }}">
+            <input type="text" name="target" id="target" value=""/>
+            <input type="submit" name="RequestChat" value="Request Chat"/>
+        </form>
+</article>
+
+<div id="noticeBox" class="noticeBox" style="display:none">
+    <form id="acceptForm" class="acceptForm">
+        <input type="hidden" name="room" value="">
+        <input type="hidden" name="user" value="">
+        <input type="hidden" name="key" value="">
+        <input type="hidden" name="target" value="">
+        <input type="text" name="message"/>
+        <input type="submit" name="send" value="Send"/>
+    </form>
+    Someone wants to chat with you ;) <span onClick="acceptChat()">&lt;accept&gt;</span>
+</div>
+
+<div id="chatBoxes" class="chatBoxes">
+</div>
+
+<div id="chatBoxTemplate" class="chatBoxTemplate" style="display:none">
+    <div id="chatDialog" style="height: 10em; overflow:auto; border: 1px solid black">
+    </div>
+    <form id="chatForm" class="chatForm">
+        <input type="hidden" name="room" value="">
+        <input type="hidden" name="user" value="">
+        <input type="hidden" name="key" value="">
+        <input type="hidden" name="target" value="">
+        <input type="text" name="message"/>
+        <input type="submit" name="send" value="Send"/>
+    </form>
+</div>
+
 {% endblock %}
