@@ -2,7 +2,13 @@
 #   implementations of redis commands
 #
 #TODO:
-#   I believe this can be changed to use only 1 socket per user, regardless of
+#   -When a user sends a ctl_chat_req, it should be sent as part of a json,
+#       along with some unique identifier (maybe no?) so that the responder can
+#       send a ctl_chat_accept along with the unique ident to the requester's
+#       priv channel. The backend can check to see if this is a valid ident.
+#       this way, a user won't be bothered by unsolicited ctl_chat_accept that
+#       could still have permission to be published on their channel.
+#   -I believe this can be changed to use only 1 socket per user, regardless of
 #       how many open chat windows they have. Simply make the main loop do the
 #       legwork of deciding which chat windows receive which messages. Most of
 #       the code would need to be rewritten, but it might be worth it if we find

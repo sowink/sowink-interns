@@ -1,6 +1,11 @@
-/* TODO: Figure out how to handle too many chat notifications. Guess this is
+/* TODO: 
+    -Figure out how to handle too many chat notifications. Guess this is
         dependent on ui implementation, but it might be a good idea to have a
         ctl_chat_busy that the js can send if there are too many notifications.
+    -when a ctl_chat_req successfully comes through, it should populate the needed
+        fields so that user can respond to and open up a session.
+        -this would require redis storage of chat intent. When chat intent true
+            for any given chat, users should be able to connect w/o issue.
 */
 
     //preload the chat template
@@ -52,7 +57,10 @@
         }
         else if(data == "ctl_chat_req")
         {
+            /* once data starts containing more useful stuff (JSON) say who
+            wants to chat and fill the notice hidden fields */
             console.log("someone wants to chat with you ;)");
+            displayChatRequest()
         }
         else if(data == "ctl_chat_deny")
         {
@@ -141,6 +149,15 @@ function requestCredentials(boxId)
         dataType: 'json'
     });
 }        
+
+function displayChatRequest()
+{
+    $("#noticeBox").show();
+}
+function acceptChatRequest()
+{
+    $("#noticeBox").hide();
+}
 
 function checkCredentials(data)
 {

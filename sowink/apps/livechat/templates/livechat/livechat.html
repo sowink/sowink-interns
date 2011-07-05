@@ -17,16 +17,17 @@
         </form>
 </article>
 
-<div id="noticeBox" class="noticeBox" style="display:none">
+<div id="noticeBox" class="noticeBox" style="display:none; border: 1px grey;">
+        Someone wants to chat with you ;) <span onClick="acceptChatRequest()">&lt;accept&gt;</span>
+        <!-- NOTE: this form doesn't need to be a form. But it should get populated  -->
     <form id="acceptForm" class="acceptForm">
         <input type="hidden" name="room" value="">
         <input type="hidden" name="user" value="">
         <input type="hidden" name="key" value="">
         <input type="hidden" name="target" value="">
         <input type="text" name="message"/>
-        <input type="submit" name="send" value="Send"/>
+        <input type="button" name="accept" value="Accept" onClick="acceptChatRequest()"/>
     </form>
-    Someone wants to chat with you ;) <span onClick="acceptChat()">&lt;accept&gt;</span>
 </div>
 
 <div id="chatBoxes" class="chatBoxes">
