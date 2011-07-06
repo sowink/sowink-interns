@@ -8,41 +8,33 @@
         <h1>{{ _('Live Chat') }}</h1>
     </hgroup>
 
-        <form id="targetForm">
-            <input type="hidden" name="my_ctl_priv" id="my_ctl_priv" value="{{ my_ctl_priv }}">
+        <form id="target-form">
+            <input type="hidden" name="my-ctl-priv" id="my-ctl-priv" value="{{ my_ctl_priv }}">
             <input type="hidden" name="user" id="user" value="{{ user_id }}">
             <input type="hidden" name="key" id="key" value="{{ my_ctl_priv_key }}">
             <input type="text" name="target" id="target" value=""/>
-            <input type="submit" name="RequestChat" value="Request Chat"/>
+            <input type="submit" name="Request-chat" value="Request Chat"/>
         </form>
 </article>
 
-<div id="noticeBox" class="noticeBox" style="display:none; border: 1px grey;">
-        Someone wants to chat with you ;) <span onClick="acceptChatRequest()">&lt;accept&gt;</span>
-        <!-- NOTE: this form doesn't need to be a form. But it should get populated  -->
-    <form id="acceptForm" class="acceptForm">
-        <input type="hidden" name="room" value="">
-        <input type="hidden" name="user" value="">
-        <input type="hidden" name="key" value="">
-        <input type="hidden" name="target" value="">
-        <input type="text" name="message"/>
-        <input type="button" name="accept" value="Accept" onClick="acceptChatRequest()"/>
-    </form>
+<div id="chat-boxes" class="chat-boxes">
 </div>
 
-<div id="chatBoxes" class="chatBoxes">
-</div>
-
-<div id="chatBoxTemplate" class="chatBoxTemplate" style="display:none">
-    <div id="chatDialog" style="height: 10em; overflow:auto; border: 1px solid black">
+<div id="chat-box-template" class="chat-box-template" style="display:none">
+    <div id="chat-dialog" style="height: 10em; overflow:auto; border: 1px solid black">
     </div>
-    <form id="chatForm" class="chatForm">
+    <form id="chat-form" class="chat-form" data.box-id="0" >
         <input type="hidden" name="room" value="">
         <input type="hidden" name="user" value="">
         <input type="hidden" name="key" value="">
         <input type="hidden" name="target" value="">
         <input type="text" name="message"/>
         <input type="submit" name="send" value="Send"/>
+    </form>
+    <form id="request-credentials" class="request-credentials">
+        {{ csrf() }}
+        <input type="hidden" name="target" value="">    
+        <input type="hidden" name="box-id" value="">    
     </form>
 </div>
 

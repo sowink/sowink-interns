@@ -1,7 +1,31 @@
 #HELP: see the readme in redis-py for documentation on the various python
 #   implementations of redis commands
 #
-#TODO:
+#MUST HAVE:
+#   -JSON messages on both backend and frontend
+#   -timestamp logging
+#   -revisit the entire handling of redis purging. I don't like it as it stands.
+#   -New spec: 
+#       -user chooses target from list of online favorites
+#       -js sends xhr with target_id to django. django sends back chat_key to js
+#       -js puts chat_key into chat_form and pops up a chatbox.
+#       -run_chat will verify they can open such a chat (should if user isn't
+#           trying to break stuff)
+#       -user types and sends message and run_chat will publish it to the room.
+#       -if target doesn't yet have a chatbox open, run_chat will send a
+#           ctl_chat_open to target. This should be handled by the "chatter"
+#           handler. Whenever userA publishes chatter to AbjkB, check if 
+#           B_active_AbjdB > 0. If not, send ctl_chat_open to B_ctl_priv.
+#       -Should we wait till other user is online before publishing?
+#
+#-------------------------------------------------------------------------------
+#REDIS VAR REFERENCE: I'll fill this in as I go along
+#   - {chat_id}_active (counter of how many chat windows open btwn 2 users)
+#-------------------------------------------------------------------------------
+#TODO: (review these and remove obsolete todo's from old design)
+#   NOTE: the spec for chat has changed (i.e. I got it wrong the first time)
+#       some of the comments in this TODO list are now obsolete.
+#   -if something goes wrong, ensure user's ctl_priv channel auto reconnects
 #   -When a user sends a ctl_chat_req, it should be sent as part of a json,
 #       along with some unique identifier (maybe no?) so that the responder can
 #       send a ctl_chat_accept along with the unique ident to the requester's
@@ -43,10 +67,87 @@
 #   -keep track of all volatile redis vars that we want purged at the end of a
 #       a session. there's a volatiles_to_purge dict that should be put to use
 #   -prevent chat flood (keep users from opening too many chats too frequently
+#   -when user sends a ctl_chat_req, store some sort of request_id. This will
+#       be used so that when a responder sends a ctl_chat_accept, we can check
+#       if there's actually a chat request to respond to. Once that is done, it
+#       can go ahead and do the standard auth procedures for opening a new chat
+#       window. 
+#   -I'll need to properly handle cases where one user disconnects before chat
+#       is finished being established. Maybe send a ctl_chat_fail
+#   -handle clt_recon, ctl_decon, reconnect, and disconnect messages from js
+#   -Probably should only allow 1 chat request per user-target. So if I send a
+#       chat request in 1 tab, then open another tab and send request, It should
+#       not send the request twice (unless the first failed/rejected, etc)
+#   -Don't allow any single tab to have an identical user-target chat open.
+#       not sure how to prevent this, other than javascript...
+#   -If target sends ctl_chat_accept or reject, it should also send request_id.
+#       but we can't count on the user. So we'll have to handle those situations
+#       where a ctl is received without the accompanying request_id.
+#   -we'll also have to handle if a ctl_chat_request never receives a response
+#       for some reason. In these cases, we need to remove the request_id token
+#       from redis eventually so that the user is not blocked from sending a
+#       chat request in the future.
+#   -Set a timeout for chat responses from target. When timeout reached, send a
+#       ctl_chat_timeout to requester.
+#   -if we allow offline messages, js should give user option to send offline
+#       messages both on ctl_chat_timeout and ctl_chat_offline. We might want to
+#       have a max number of offline messages a user can send to target to that
+#       target is not flooded upon login. If we do this, it would be a good idea
+#       allow user to retract their messages before other user comes online. 
+#       this would require that once user comes online, any in progress offline
+#       edits will fail to send?.
+#   -user should be able to cancel a chat request
+#   -request_ids should also be removed if the requester closes or cancels the
+#       chat request.
+#   -these are good reasons to use the volatiles_to_purge variable
+#   -hey, a request ID might not even be necessary. Instead, just have a redis
+#       variable {chat_id}_status that stores active/pending and is purged if
+#       no more open windows open. 
+#   -better yet, a counter. 1:pending, >1:active, nil = not active
+#   -handle multiple people requesting chat at same time.
+#   -handle offline chat? If user cannot be reached (after timeout) js should
+#       popup an offline message box.
+#   -if any user closes all their chat windows, other user will be notified.
+#       when this happens, should it close their window too? or should it just
+#       keep it open and if other user reconnects or chat_req, it immediately
+#       joins them w/o worrying about overhead?
+#   -js should switch userA to offline send mode when userB disconnects. But
+#       until offline mode is finished, run_chat should just tell userA that 
+#       userB has disconnected and the message was not sent. It should not log
+#       that message to redis, but can show up on their screen with some sort of
+#       tag that tells js to color it grey (not sent)
+#   -handler for ctl_chat_req should also check if chat already active. If yes,
+#       immediately send requester ctl_chat_accept.
+#   -Don't automatically allow user to open a chat, just because the key checks
+#       out. Make sure a chat is only opened if chat is requested {c}_active > 1
+#   -decide order of active chat check and target online check.
+#       -active first, then automatically join, if we plan on just telling them
+#           that the target is offline when window opens. This is a lousy idea.
+#       -online first, then send ctl_chat_offline if target offline
+#   -If a chat session is active and userB leaves chat ({b}_active_AbojakB = 0)
+#       then userA should be able to send another chat request. With current
+#       design, it wont let them because it will consider chat pending already.
+#       To fix this, serverside handler for ctl_chat_req should do the following
+#       checks:
+#           -first see if a chat is "active" ( {A}_active_{A}bjk{B}>0 and 
+#               {B}_active_{A}bjk{B} >0 ). If yes, connect immediately.
+#           -next check if chat "pending" 
+#               {A}bjk{b}_active != nil
+#                   . If yes, check
+#               if it is their request pending, or the target's. If target's,
+#               then send user a ctl_chat_accept. If no, then user can't send
+#               another request till accepted, rejected, or timeout.
+#           -next see if a chat is "inactive" ( {A}bojak{B}_active = nil ). If
+#               so, then ... (NOTE: spec changed. ignore this stuff)
+#
+#   -consider temporary blocks if userA starts spamming userB with requests and
+#       B keeps rejecting them. if B then sends A a message later, unblock A.
+#   
 #   -do test cases for the following:
 #       -user enters bad credentials (chat_key, user_id, etc) on js side
 #       -too many open windows
 #       -failed connection terminations
+#
 #------------------------------------------------------------------------------
 #FIXED Stuff (I think...):
 #   -CRITICAL ISSUE: It keeps creating new socket instances!
@@ -58,7 +159,7 @@
 #   -keep all tabs connected, possibly setting a max number open
 #   -don't tell user that I connected every single time I open a new tab
 #   -some sort of user_is_online() function needs to be implemented so that we
-#       can send ctl_chat_fail if user tries to chat with offline target
+#       can send ctl_chat_offline if user tries to chat with offline target
 #
 #   -Store the session_id in redis when the connection is first established.
 #   -redis publications are considered type:message, but they are different 
@@ -121,7 +222,7 @@ from django.core.management.base import NoArgsCommand
 from django.http import HttpResponse, HttpResponseRedirect
 
 from socketio import SocketIOServer
-from livechat.views import redis_client, user_is_online, verify_chat_key
+from livechat.views import redis_client, user_is_online, verify_chat_key, is_chat_session_allowed
 from gevent import Greenlet
 import jingo
 from redis import Redis
@@ -225,9 +326,22 @@ def chat_socketio(io):
     master_user_id = None #needed for disconnect messages, though I suppose I
         #can grab it from redis if I store user_id with session_id.
     error_occurred = False
-
-    #keep track of these so that they are only purged if they get set.
-    volatiles_to_purge = dict()
+    ctl_pub = None
+    clt_priv = None
+    this_greenlet = None
+    fav_greenlets = dict()
+    
+    # volatiles to purge: keep track so that they are purged if set
+    # key=redis var name, value=(p)urge|(d)ecrement|(h)hdel|(hd)ecrement<incr-1>
+    # e.g.  'u_k_to_c':{'h':$chat_key} (will hdel $chat_key from hash 'u_k_to_c'
+    #       'c_active':{'hd':$uid} (will hincrby -1 $uid from hash 'c_active'
+    #           seems like it should take an hincrby val. But not important now
+    #           since all incrs are by 1. Later, store decr counter as well.
+    #       'sess_key':{'p':1} (will purge 'sess_key'. doesn't care about 1)
+    #       'u_act_c':{'d':1} (will decr 'u_act_c')
+    #NOTE: don't rely solely on this. I'll still need to purge fav_greenlets[]
+    vtp = dict()
+    
 
     def subscriber(io):
         try:
@@ -294,6 +408,8 @@ def chat_socketio(io):
     else:
         print "SOMETHING OTHER THAN CONNECT!" # Shouldn't, if code is healthy...
 
+    # rangeloop, as I like to call it, handles when a user joins a chat room, or
+    #   when user opens their ctl channel, which is also technically a chat room
     #NOTE: -double check that all break statements are needed/in the right place
     #      -examine behavior of the error_occurred flag, and make sure they are
     #           where they need to be
@@ -338,7 +454,8 @@ def chat_socketio(io):
                 print "joinmsg fields = ",joinmsg.keys()
                 print "joinmsg vals = ",joinmsg.values()
                 break
-            #Grab fields required to do auth
+            #Grab fields required to do auth.
+            #NOTE: cast as str?
             chat_key = joinmsg['chat_key']
             user_id = joinmsg['user_id']
             chat_id = joinmsg['chat_id']
@@ -356,71 +473,118 @@ def chat_socketio(io):
             username = redis_client('livechat').get(
                     'name_for_uid_{u}'.format(u=joinmsg['user_id']) )
 
+            # handle chat joins here
             if type == 'joined' or type == 'reconnect':
                 print "joinloop received a joined iorecv"
                 print "joinmsg vals = ",joinmsg.values()
                                 
-                # register sessionid in redis along with users chat_key
-                #NOTE: also store count of how many connections user has open
-                #   on a given channel. That way, we only publish dis/connect
-                #   messages if count = 0
-                redis_client('livechat').set(
-                    'session_{s}_key'.format(s=io.session.session_id),
-                    chat_key)
-                print 'registering session %s' % io.session.session_id
-                redis_client('livechat').hset('{u}_keys_to_{c}'.format(
-                    c=chat_id, u=user_id),
-                    chat_key, "used")
-                print 'marking key as used %s' % chat_key
-                active_chats = redis_client('livechat').incr(
-                    '{u}_active_{c}'.format(c=chat_id, u=user_id) )
-                print '(open){u}_active_{c} count: {a}'.format(c=chat_id, u=user_id, a=active_chats)
+                # register sessionid in redis along with users chat_key. also
+                #   store count of how many connections user has open on a given
+                #   channel so we only publish dis/connect messages if count==0.
+                #   lastly, store another var {c}_active which is a hash with
+                #   each participant's active status.
+                #NOTE: using {c}_active hash, we no longer need {u}_active_{c}.
+                #   we can use HINCRBY to increment their counter there.
+                #   but we'll need to change all references, so use both for now
+                #NOTE: might be worth making this a hash so we store both key
+                #   and type (chat|ctl)
+                r_ssk = 'session_{s}_key'.format(s=io.session.session_id)
+                redis_client('livechat').set(r_ssk, chat_key)
+                vtp[r_ssk] = {'p':1} #del r_ssk
+                print 'registering session %s' % r_ssk
+                
+                r_uktc = '{u}_keys_to_{c}'.format(c=chat_id, u=user_id)
+                redis_client('livechat').hset(r_uktc, chat_key, "used")
+                vtp[r_uktc] = {'h':chat_key} #hdel r_uktc->chat_key
+                print 'marking key as used %s' % r_uktc
+                
+                #NOTE: a_c_p_u will need to replace active_chats eventually
+                r_cact = '{c}_active'.format(c=chat_id)
+                a_c_p_u = redis_client('livechat').hincrby(r_cact, user_id, 1)
+                vtp[r_cact] = {'hd':user_id} #hincrby r_cact->user_id -1 
+                print '(open){c}_active->{u} count: {a}'.format(
+                    c=chat_id, u=user_id, a=a_c_p_u)
+                
+                #NOTE: this needs to be deprecated and replaced by a_c_p_u above
+                r_uactc = '{u}_active_{c}'.format(c=chat_id, u=user_id)
+                active_chats = redis_client('livechat').incr(r_uactc)
+                vtp[r_uactc] = {'d':1} #decr r_uactc
+                print '(open){u}_active_{c} count: {a}'.format(
+                    c=chat_id, u=user_id, a=active_chats)
 
                 # spawn a listener for this instance:
-                in_greenlet = Greenlet.spawn(subscriber, io)
+                this_greenlet = Greenlet.spawn(subscriber, io)
 
-                # publish connection notice
-                #NOTE: fix so that it only publishes notice on first connection
+                # publish connection notice, but only first connection
                 #   We don't want to know each time a chat window is opened up.
+                #NOTE: deprecate active_chats here as well
                 if active_chats == 1:
-                    redis_client('livechat').publish(
-                        CHANNEL, '%s has joined' % username)
-                    print 'publishing user join msg on %s' % CHANNEL
+                    msg = '{u} has joined'.format(u=username)
+                    redis_client('livechat').publish(CHANNEL, msg)
+                    print 'publishing %s joined on ch. %s' % (username, CHANNEL)
                 break
 
-            #handle controls here
+            # handle ctl joins here
             elif type == 'ctl_init':
-                print "joinloop received a ctl_init iorecv"
-                print "joinmsg vals = ",joinmsg.values()
                 #NOTE: may or may not need to implement all the same session
                 #   storing techniques that were used for 'joined'
-                redis_client('livechat').set(
-                    'session_{s}_key'.format(s=io.session.session_id),
-                    chat_key)
+                #NOTE: consider using ctl_session_{s}_key. Or globally make all
+                #   session_{s}_key into a redis hash called session_{s} with:
+                #       -'session_chat_key'=$chat_key
+                #       -'type'=(ctl|chat)
+                #       -'user_id'=$user_id
+                print "joinloop received a ctl_init iorecv"
+                print "joinmsg vals = ",joinmsg.values()
+                
+                # persist ctl_pub and ctl_priv chans
+                ctl_pub = "{u}_ctl_pub".format(u=user_id)
+                ctl_priv= chat_id
+                
+                # store chat_key associated with this session
+                r_ssk = 'session_{s}_key'.format(s=io.session.session_id)
+                redis_client('livechat').set(r_ssk, chat_key)
+                vtp[r_ssk] = {'p':1} #del r_ssk
                 print 'registering ctl session %s' % io.session.session_id
-                redis_client('livechat').hset('{u}_keys_to_{c}'.format(
-                    c=chat_id, u=user_id),
-                    chat_key, "used")
+                
+                # mark this chat key as used
+                r_uktc = '{u}_keys_to_{c}'.format(c=chat_id, u=user_id)
+                redis_client('livechat').hset(r_uktc, chat_key, "used")
+                vtp[r_uktc] = {'h':chat_key} #hdel r_uktc->chat_key
                 print 'marking key as used %s' % chat_key
-                active_ctls = redis_client('livechat').incr(
-                    '{u}_active_{c}'.format(c=chat_id, u=user_id) )
-                print '(open){u}_active_{c} count: {a}'.format(c=chat_id, u=user_id, a=active_ctls)
 
-                # spawn a greenlet listener for your ctl_priv_in channel. This
+                #NOTE: a_c_p_u will need to replace active_chats eventually
+                r_cact = '{c}_active'.format(c=chat_id)
+                a_c_p_u = redis_client('livechat').hincrby(r_cact, user_id, 1)
+                vtp[r_cact] = {'hd':user_id} #hincrby r_cact->user_id -1 
+                print '(open){c}_active->{u} count: {a}'.format(
+                    c=chat_id, u=user_id, a=a_c_p_u)
+
+#NOTE: ctl_init should use acpu instead
+#                 # incr count of how many ctls this user has open
+#                 r_uactc = '{u}_active_{c}'.format(c=chat_id, u=user_id)
+#                 redis_client('livechat').incr(r_uactc)
+#                 active_ctls = redis_client('livechat').incr(r_uactc)
+#                 vtp[r_uactc] = {'d':1} #decr r_uactc
+#                 print '(open){u}_active_{c} count: {a}'.format(
+#                     c=chat_id, u=user_id, a=active_ctls)
+
+                # spawn a greenlet listener for your ctl_priv channel. This
                 #   assumes that $chat_id is the name of your ctl_priv_in
-                priv_greenlet = Greenlet.spawn(subscriber, io)
+                this_greenlet = Greenlet.spawn(subscriber, io)
                                 
-                # grab list of fav ctl channels they want to listen to and spawn
-                #   a greenlet subscriber for each. Then poll redis to find out
-                #   which friends are currently online
-                favorites = redis_client('livechat').hgetall(
-                    '{u}_favorites'.format(u=user_id) )
+                # grab list of favs ctl_pub channels and spawn a greenlet
+                #   subscriber for each. Then poll redis to find out which
+                #   friends are currently online
+                #NOTE: might need to handle closure of fav greenlets better. I
+                #   don't think they are closing because they are not getting
+                #   referenced properly. Double check on this.
+                r_ufav = '{u}_favorites'.format(u=user_id)
+                favorites = redis_client('livechat').hgetall(r_ufav)
                 currently_online = list()
-                fav_greenlet = dict()
                 for fav, permission in favorites.items():
                     if permission == "allow":
                         CHANNEL = str(fav)+"_ctl_pub"
-                        fav_greenlet[fav] = Greenlet.spawn(subscriber, io)
+                        fav_greenlets[fav] = Greenlet.spawn(subscriber, io)
                         # who is already online?
                         if user_is_online(fav):
                             currently_online.append(fav)
@@ -429,16 +593,18 @@ def chat_socketio(io):
                 #   list to {u}_ctl_priv. Make sure there is something on client
                 #   side to handle this type of message
                 #   ALSO, store this, and other pub notices, as json
-                redis_client('livechat').publish(
-                    "{u}_ctl_priv".format(u=user_id), 
-                    "currently online %s" % str(currently_online) )
+                r_uctlpub = "{u}_ctl_priv".format(u=user_id)
+                msg = "currently online %s" % str(currently_online)
+                redis_client('livechat').publish(r_uctlpub, msg)
                         
-                # broadcast on your own control channel that you have connected
-                #NOTE: should be some notice, not necessarily human readable
-                if active_ctls == 1:
-                    redis_client('livechat').publish(
-                        "{u}_ctl_pub".format(u=user_id), "online")
-                    print 'publish to {u}_ctl_pub: "online"'.format(u=user_id)
+                # broadcast on your own control channel that you have connected.
+                #   only do it on your first connection
+                #NOTE: should be a json notice
+                if a_c_p_u == 1:
+                    r_uctlpriv = "{u}_ctl_pub".format(u=user_id)
+                    msg = "online"
+                    redis_client('livechat').publish(r_uctlpriv, msg)
+                    print 'publishing to {c}: {m}'.format(c=r_uctlpriv, m=msg)
                 break
             else:
                 error_occurred = True
@@ -449,7 +615,7 @@ def chat_socketio(io):
                 
         if i == 20:
             error_occurred = True
-            print "error occurred: i = 20"
+            print "error occurred after rangeloop: i==20 (join timeout?)"
     
     # Until the client disconnects, listen for input from the user:
     #TAG: mainloop
@@ -463,43 +629,46 @@ def chat_socketio(io):
             to_redis = json.loads(recv[0])
 
             # make sure to_redis has a type
+            #NOTE: replace this with dict_has_required_keys
             if not dict_has_type(to_redis):
-                error_occurred = True
-                print "mainloop received a typeless iorecv!"
+                print "!mainloop: typeless iorecv!"
                 print "to_redis fields = ",to_redis.keys()
                 print "to_redis vals = ",to_redis.values()
+                error_occurred = True
                 break
+            type = str(to_redis['type'])
 
             # do a required_keys check for type before proceeding
-            if not dict_has_required_keys(to_redis, to_redis['type']):
-                error_occurred = True
-                print "mainloop: iorecv with missing fields for type %s" % type
+            if not dict_has_required_keys(to_redis, type):
+                print "!mainloop: iorecv with missing fields for type %s" % type
                 print "to_redis fields = ",to_redis.keys()
                 print "to_redis vals = ",to_redis.values()
+                error_occurred = True
                 break
 
             # validate user's chat key before continuing. Two step process:
             #   -make sure this recv has the fields needed for auth
             #   -verify_chat_key using said fields
+            if not dict_has_required_keys(to_redis, 'auth'):
+                print '!mainloop: trying to auth, but required fields missing!'
+                print "joinmsg fields = ",to_redis.keys()
+                print "joinmsg vals = ",to_redis.values()
+                error_occurred = True
+                break
+
+            # Grab fields required to do auth
             #NOTE: figure out what to tell the user when auth fails. When this
             #   routine was in the type check blocks, it would print context
             #   specific messages. Now it needs to raise a flag or something.
-            #   if I do it this way, don't break on failed verify here. Let the
-            #   type check blocks handle sending message and breaking.
-            if not dict_has_required_keys(to_redis, 'auth'):
-                error_occurred = True
-                print 'trying to do auth, but required fields were not passed'
-                print "joinmsg fields = ",to_redis.keys()
-                print "joinmsg vals = ",to_redis.values()
-                break
-            #Grab fields required to do auth
+            #   If I do it that way, don't break on failed verify here. Let the
+            #   type checking blocks handle sending message and breaking.
             chat_key = to_redis['chat_key']
             user_id = to_redis['user_id']
             chat_id = to_redis['chat_id']
             if not verify_chat_key(chat_key, user_id, chat_id):
+                io.send('sorry, an error occurred')
+                print '!mainloop: User validation failed!'
                 error_occurred = True
-                io.send('sorry, an error occurred. Try refreshing the page')
-                print 'User failed validation'
                 break
 
             #otherwise, continue with grabbing fields
@@ -510,55 +679,59 @@ def chat_socketio(io):
                     'name_for_uid_{u}'.format(u=user_id) )
 
             #NOTE: what's the point of this block?
-            if to_redis['type'] == 'reconnect':
+            if type == 'reconnect':
                 print "mainloop received a reconnect iorecv"
-                print "to_redis vals = ",to_redis.values()
+                print "to_redis vals = ", to_redis.values()
                 payload = str(to_redis['payload'])
-                
+
                 #NOTE: if I raise a flag on bad user auth above, then handle
                 #   printing context specific message to user and breaking here
 
-#                 if not verify_chat_key(chat_key, user_id, chat_id):
-#                     error_occurred = True
-#                     io.send('Error joining chat. Try reloading the page.)')
-#                     print('Error joining chat. '
-#                     'Are you trying to break something? ;)')
-#                     break
-                    
-            #NOTE: this looks like a good place to do a session check...
-            
-            elif to_redis['type'] == 'chatter':
+            # chatter handler
+            elif type == 'chatter':
+            #NOTE: chatter handler will also want a target_id in order to send a
+            #   ctl_chat_open msg to the offline target. We'll probably want to
+            #   store chat participants into redis with value active/inactive.
+            #   it is similar to A_active_AbjkB, but chatter will want to find
+            #   out who is supposed to be in the room. For now, using a hash
+            #   {c}_active->{u}:$count. This should become standard.
                 print "mainloop received a chatter iorecv"  
                 print "to_redis vals = ",to_redis.values()
                 payload = str(to_redis['payload'])
  
                 #NOTE: if I raise a flag on bad user auth above, then handle
                 #   printing context specific message to user and breaking here
-
-#                 if not verify_chat_key(chat_key, user_id, chat_id):
-#                     error_occurred = True
-#                     io.send('sorry, your message was not sent.')
-#                     print('sorry, your message was not sent.'
-#                     'Are you trying to break something? ;)')
-#                     break
                 
-                #NOTE: remember to make a timestamp as well
-                # publish chatter and lpush
-                print 'Channel::%s, Outgoing to Redis: %s' % (CHANNEL, to_redis)
-                redis_client('livechat').publish(
-                    CHANNEL, "{u}: {p}".format(u=username, p=payload) )
+                #find out if any participant has no chatboxes open
+                r_cact = '{c}_active'.format(c=chat_id)
+                participant_counts = redis_client('livechat').hgetall(r_cact)
+                for participant, count in participant_counts.items():
+                    if int(count) == 0:
+                        #send this participant a ctl_chat_open
+                        ch_pcpv = '{p}_ctl_priv'.format(p=participant)
+                        redis_client('livechat').publish(ch_pcpv, 'ctl_chat_open')
+                        print "ctl_chat_open>{chan}".format(chan=ch_pcpv)
+                    #when done debugging, break here to skip next participant
+                    else:
+                        print "%s already has %s chat open" % (participant, count)
+                
+                # publish chatter and lpush to chat history
                 #NOTE: Replace strings with JSON objects and store timestamps
                 #   Also, consider storing user_id in case username ever changes
                 #   in the future.
-                redis_client('livechat').lpush(
-                    'chat_id:{c}'.format(c=chat_id),
-                    '{u}: {p}'.format(u=username, p=payload) )
+                msg = "{u}: {p}".format(u=username, p=payload)
+                redis_client('livechat').publish(CHANNEL, msg)
+                print 'Channel::%s, Outgoing to Redis: %s' % (CHANNEL, to_redis)
+                
+                r_chathist = 'chat_id:{c}'.format(c=chat_id)
+                redis_client('livechat').lpush(r_chathist,msg)
 
-            #NOTE: best way to handle ctl is to think of the auth step as just
-            #   user verification. If they pass this, then they are indeed who 
-            #   they claim to be. Allow them to listen to any favs ctl_pub chan
-            #   and publish to any ctl_priv chan allowed for user
-            elif to_redis['type'] == 'ctl_chat_req':
+            elif False and type == 'ctl_chat_req_old': #DEPRECATED
+                #NOTE: just think of the auth step as just user verification. If
+                #   they pass this, then they are indeed who they claim to be.
+                #   Allow them to listen to any favs ctl_pub chan and publish to
+                #   any ctl_priv chan allowed for user
+                #NOTE: don't forget to create and store a request_id.
                 print "mainloop received a ctl_chat_req iorecv"  
                 print "to_redis vals = ",to_redis.values()
                 target = str(to_redis['target'])
@@ -569,19 +742,31 @@ def chat_socketio(io):
                 # is in their favorites. If so, publish chat request to userB's
                 # B_priv_in channel
                                 
-                # verify that user can send chat requests to requested user
-                #NOTE: Will have to also verify that the user is online. Might
-                #   need to add a check before here to see if user online
+                # verify that user can send chat requests to target. Then verify
+                #   that the target is online.
                 target_permission = str(redis_client('livechat').hget(
                     '{u}_favorites'.format(u=user_id), target))
                 if target_permission == 'allow':
-                    #NOTE: this is a good place to add a user online check.
+                    #NOTE: first do a check for active {c}_active. If active, send
+                    #   ctl_chat_accept to user channel instead of clt_chat_req
+                    #   to target channel.'
+                    #NOTE: might be a good idea check {t}_active_{c} where in
+                    #   this case, c=chat_id {u}bojak{t} (not {t}_ctl_priv)
+                    #NOTE: it should still keep track if other user offline. I
+                    #   suggest doing it when a chat is opened. If th othr user
+                    #   is offline, publish it to the chat window
+                    
+                    #check 
+                    
                     if user_is_online(target):
+                        # good. now store a request_id for the target to use in
+                        #   their ctl_chat_accept or ctl_chat_reject
+                        #redis_client('livechat').incr('{c}_active'.format(c=a))
                         # publish the chat request to target. It will show up 
-                        # on their ctl_priv chan as redis data:"ctl_chat_req"
+                        # on their ctl_priv chan as redis data "ctl_chat_req"
                         redis_client('livechat').publish('{t}_ctl_priv'.format(
                             t=target), 'ctl_chat_req')
-                        print ("user is can chat with target. sending"
+                        print ("user can chat with target. sending"\
                                 "ctl_chat_req to target's %s_ctl_priv" % target)
                     else:
                         #target offline. let user know it is not deny or reject
@@ -591,7 +776,7 @@ def chat_socketio(io):
                                 "to user's %s_ctl_priv" % user_id)
                         
                 elif target_permission in ['deny', None, 'None']:
-                    # target blocked or is not even in their favorites.
+                    # target is blocked or is not even in their favorites.
                     # tell user they arent allowed to talk to their target
                     redis_client('livechat').publish('{u}_ctl_priv'.format(
                         u=user_id), 'ctl_chat_deny')
@@ -600,17 +785,51 @@ def chat_socketio(io):
                 else:
                     # some special permission that isn't implemented yet
                     redis_client('livechat').publish('{u}_ctl_priv'.format(
-                        u=user_id), 'ctl_chat_unkn')
+                        u=user_id), 'ctl_chat_perm_unkn')
                     print "permission %s not yet implemented" % target_permission
-                    print "ctl_chat_unkn sent to user on {u}_ctl_priv".format(
+                    print "ctl_chat_perm_unkn sent to user on {u}_ctl_priv".format(
                         u=user_id)
-                    
+            
+            elif type == 'ctl_chat_req':
+                #NOTE: this is a newer version that doesn't require user to wait
+                #   for target's ctl_chat_accept before opening a chat window.
+                #   It should automatically send ctl_chat_accept to user if
+                #   target is online and they are allowed to talk.
+                #NOTE: once offline msgs are added, keep in mind the effects 
+                #   they will have on this design. It will mean that the user 
+                #   should be able open a chat window with a friend, regardless 
+                #   of whether or not target is online.
+                print "mainloop received a ctl_chat_req iorecv"  
+                print "to_redis vals = ",to_redis.values()
+                target_id = str(to_redis['target'])
+                
+                # if target in user's favorites AND online, send ctl_chat_accept
+                #NOTE: make sure chat window doesn't pop up on target's side
+                #   until user actually enters and sends text
+                icsa_result = is_chat_session_allowed(user_id, target_id)
+                why = icsa_result['why']
+                ch_uctpv = '{u}_ctl_priv'.format(u=user_id)
+                msg = why
+                if icsa_result['bool']:
+                    print "target {t} allowed and online:".format(t=target_id)
+                    print "\t{w} > {u}_ctl_priv".format(w=why, u=user_id)
+                else:
+                    print "chat session not allowed:".format(w=why)
+                    print "\t{w} > {u}_ctl_priv".format(w=why, u=user_id)
+
+                redis_client('livechat').publish(ch_uctpv, why)
+
+            elif False and type == 'ctl_chat_accept': #deprecated
+                print "mainloop received a ctl_chat_accept iorecv"  
+                print "to_redis vals = ",to_redis.values()
+                #NOTE: should receive user_id of accepter (aka target_id),
+                #   user_id of requester, request_id, chat_id
                     
             else: #NOTE: should I raise an error? should I break here?
-                error_occurred = True
                 print "mainloop: unexpected recv of type %s" % to_redis['type']
                 print "to_redis fields = ",to_redis.keys()
                 print "to_redis vals = ",to_redis.values()
+                error_occurred = True
                 break
 
     print "EXIT %s" % io.session
@@ -618,54 +837,97 @@ def chat_socketio(io):
     if error_occurred:
         print "ERROR OCCURED!!!"
 
-    # Clean up volatiles
-    #NOTE: should probably purge $uid_creds_$chatid, name_for_uid_$uid
-    #   Also, remove the key from list of valids
-    #   Also, maybe I should just purge this after I have published all the
-    #   messages I need, so that I don't have to grab from redis again...
+    # Clean up
 
     # Each time I close the 2nd chat window, wait for the old socketio() view
     # to exit, and then reopen the chat page, the number of Incomings increases
     # by one. The subscribers are never exiting. This fixes that behavior:
+        # kill greenlet listeners to favorites
+    for gname, greenlet in fav_greenlets.items():
+        try:
+            greenlet.kill()
+            print "\tkilling greenlet %s" % gname
+        # kill this chat or ctl's greenlet listeners
+        except:
+            print "\tno fav Greenlet to kill"
     try:
-        in_greenlet.kill()
+        this_greenlet.kill()
+        print "\tkilling this_greenlet"
     except:
-        print "final: no Greenlet to kill"
+        print "\tno this_greenlet to kill"
 
+    # clear volatiles from vtp
+    print "clearing redis volatiles"
+    for volatile, action in vtp.items():
+        purge_type = action.keys()[0]
+        hkey = action.values()[0]        
+        if purge_type == 'p':
+            redis_client('livechat').delete(volatile)
+            print "\tredis_client: del {v})".format(v=volatile)
+        elif purge_type == 'd':
+            redis_client('livechat').decr(volatile)
+            print "\tredis_client: decr {v})".format(v=volatile)
+        elif purge_type == 'h':
+            redis_client('livechat').hdel(volatile, hkey)
+            print "\tredis_client: hdel {h} {k}".format(h=volatile, k=hkey)
+        elif purge_type == 'hd': #only active chats has that
+            acpu = redis_client('livechat').hincrby(volatile, hkey, -1)
+            print "\tredis_client: hincrby {h} {k} -1".format(h=volatile, k=hkey)
+            # publish disconnect msg if last remaining open chat for user in this room.
+            # This should only happen when counter = 0
+#             if acpu == 0:
+#                 username = ('livechat').get('name_for_uid_{u}'.format(u=master_user_id) )
+#                 redis_client('livechat').publish(CHANNEL, '%s has disconnected' % username)
+#                 #remove the variable entirely
+#                 redis_client('livechat').delete('{u}_active_{c}'.format(c=CHANNEL, u=master_user_id) )
+#                 print 'removing {u}_active_{c}'.format(c=CHANNEL, u=master_user_id)
+#                 print "publishing disconnect message on channel %s" % CHANNEL
+
+#           
+#     #NOTE: should probably purge $uid_creds_$chatid, name_for_uid_$uid
+#     #   Also, remove the key from list of valids
+#     #   Also, maybe I should just purge this after I have published all the
+#     #   messages I need, so that I don't have to grab from redis again...
+#     #NOTE: if volatiles are cleaned up above, then I'll need to have grabbed the
+#     #   user_id and put it somewhere persistent. Consider using redis to store
+#     #   the user_id with the session_id ahead of time. Or better yet, wait till
+#     #   after this point to purge volatiles. yea, that's what I'll do.
+#     #   Also, don't forget to replace master_user_id below
+# 
+#     # remove key from this user's list of valid keys
+#     key_to_purge = redis_client('livechat').get('session_{s}_key'.format(s=io.session.session_id) )
+#     redis_client('livechat').hdel('{u}_keys_to_{c}'.format(u=master_user_id, c=CHANNEL), key_to_purge)
+#     print "removing key %s" % key_to_purge
+# 
+#     # remove session
+#     redis_client('livechat').delete('session_{s}_key'.format(s=io.session.session_id) )
+#     print "removing session %s" % io.session.session_id
+# 
+#     # decrement active chat counter
+#     #NOTE: make sure it only decr if count > 0. It should never be less than
+#     #   1 at this point, but just double check for rogue cases and report them
+#     active_chats = redis_client('livechat').decr(
+#         '{u}_active_{c}'.format(c=CHANNEL, u=master_user_id) )
+#     print '(close){u}_active_{c} count: {a}'.format(c=CHANNEL, u=master_user_id, a=active_chats)
+#     
+#     # decrement active chat per user counter
+#     #NOTE: eventually will replace the one above. But make sure you only decr
+#     #   if this is a chat session and not a control session. Control sessions
+#     #   don't use {c}_active yet.
+#     #   As a workaround, only decrement if it exists.
+#     is_chat_not_ctl = redis_client('livechat').hexists('{c}_active'.format(
+#         c=CHANNEL), master_user_id)
+#     if is_chat_not_ctl:
+#         active_chats_pu = redis_client('livechat').hincrby('{c}_active'.format(
+#             c=CHANNEL), master_user_id, -1)
+#         print '(close){c}_active->{u} count:{a}'.format(
+#             c=CHANNEL, u=master_user_id, a=active_chats_pu)
     
-    #NOTE: if volatiles are cleaned up above, then I'll need to have grabbed the
-    #   user_id and put it somewhere persistent. Consider using redis to store
-    #   the user_id with the session_id ahead of time. Or better yet, wait till
-    #   after this point to purge volatiles. yea, that's what I'll do.
-    #   Also, don't forget to replace master_user_id below
+    #NOTE: I don't want to go deleting this till I refactor everything
+#         if active_chats_pu == 0:
+#             redis_client('livechat').hdel('{c}_active'.format(
+#                 c=CHANNEL), master_user_id)
 
-    
-    # remove key from this user's list of valid keys
-    key_to_purge = redis_client('livechat').get('session_{s}_key'.format(s=io.session.session_id) )
-    redis_client('livechat').hdel('{u}_keys_to_{c}'.format(u=master_user_id, c=CHANNEL), key_to_purge)
-    print "removing key %s" % key_to_purge
-
-    # remove session
-    redis_client('livechat').delete('session_{s}_key'.format(s=io.session.session_id) )
-    print "removing session %s" % io.session.session_id
-
-    # decrement active chat counter
-    #NOTE: make sure it only decr if count > 0. It should never be less than
-    #   1 at this point, but just double check for rogue cases and report them
-    active_chats = redis_client('livechat').decr(
-        '{u}_active_{c}'.format(c=CHANNEL, u=master_user_id) )
-    print '(close){u}_active_{c} count: {a}'.format(c=CHANNEL, u=master_user_id, a=active_chats)
-
-    # publish disconnect msg if last remaining open chat for user in this room.
-    # This should only happen when counter = 0
-    if active_chats == 0:
-        username = redis_client('livechat').get('name_for_uid_{u}'.format(u=master_user_id) )
-        redis_client('livechat').publish(CHANNEL, '%s has disconnected' % username)
-        #remove the variable entirely
-        redis_client('livechat').delete('{u}_active_{c}'.format(c=CHANNEL, u=master_user_id) )
-        print 'remove {u}_active_{c}'.format(c=CHANNEL, u=master_user_id)
-        print "publishing disconnect message on channel %s" % CHANNEL
-    
     return HttpResponse()
 
 

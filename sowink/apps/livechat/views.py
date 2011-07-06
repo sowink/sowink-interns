@@ -13,8 +13,14 @@
 #   -Current design is not secure. It will prevent someone from impersonating
 #       another, but won't stop someone from intercepting keys by sniffing.
 #       Consider using SSL
-#   -consider different capitalization for fns vs vars to improve readability
-
+#   -consider different capitalization for fns vs vars to improve readability.
+#       -ClassNames
+#       -functionNames
+#       -variable_names
+#   -I forgot the original reason I decided to mark keys as used. I think it was
+#       to prevent key from being used again. But I dont think I do that anymore
+#       so instead, I might set a timeout on the key. Once key is marked used,
+#       remove the timeout. This will prevent unused keys from polluting redis
 import random
 import re
 import hashlib
@@ -91,6 +97,7 @@ def livechat(request):
 @login_required
 def chatbox(request):
     # take an xhr post, acquire target, and perform necessary validation steps
+    #NOTE: storing chat participants should be done in this function.
 
     user_id = request.user.id    
 
@@ -98,13 +105,18 @@ def chatbox(request):
     if 'target' not in request.POST:
         payload = { 'result': 'failure', 'message': 'no target specified'}
         return HttpResponse(json.dumps(payload), mimetype='applicaton/json')
+    if 'box-id' not in request.POST:
+        payload = { 'result': 'failure', 'message': 'no box-id specified'}
+        return HttpResponse(json.dumps(payload), mimetype='applicaton/json')
 
     # get target_id
     target_id = request.POST['target']
+    # get box_id
+    box_id = request.POST['box-id']
 
     #NOTE: make sure user is allowed to chat with this person first
     if not user_can_talk_to_target(user_id, target_id):
-        payload = { 'result': 'failure', 'message': 'invalid target'}
+        payload = { 'result': 'failure', 'message': 'invalid target', 'debug':'target='+target_id}
         return HttpResponse(json.dumps(payload), mimetype='applicaton/json')
 
     # Now that we know chat btwn these two is allowed, create the chat_id. 
@@ -117,7 +129,11 @@ def chatbox(request):
     chat_key = generate_chat_key( chat_id, '68LC040' )
     redis_client('livechat').hset('{u}_keys_to_{c}'.format(c=chat_id, u=user_id),
                                  chat_key, 'init')
-
+                                 
+    # store chat participants ids in {c}_active if they don't exist yet (HSETNX)
+    redis_client('livechat').hsetnx('{c}_active'.format(c=chat_id), user_id, 0)
+    redis_client('livechat').hsetnx('{c}_active'.format(c=chat_id), target_id,0)
+    
     #check if a chat queue exists for these two users in redis yet
     #NOTE: might not need to do it here. Maybe do it when grabbing chat history
 #     b_chat_queue = redis_client('livechat').exists('chat_id:{c}'.format(c=chat_id))
@@ -130,7 +146,9 @@ def chatbox(request):
                 'chat_id': chat_id,
                 'user_id': user_id,
                 'target_id': target_id,
-                'chat_key': chat_key }
+                'chat_key': chat_key,
+                'box_id': box_id
+                }
     return HttpResponse(json.dumps(payload), mimetype='applicaton/json')
 
 #NOTE: stub code for verifying a user can talk to the person they targeted
@@ -141,6 +159,27 @@ def user_can_talk_to_target(user_id, target_id):
     or not user_exists(target_id) ):
         return False
     return True
+    
+#NOTE: stub code for verifying a chat can happen. Should incorporate
+#   functionality of user_can_talk_to_target as well as user_is_online
+def is_chat_session_allowed(user_id, target_id):
+    #NOTE: with this implementation, permission will be attached to the user's,
+    #   not the target's favorites information. Discuss with Paul which way to
+    #   handle this (especially once blocking becomes enabled). Right now it's
+    #   Fine since permission="allow" if target is in user's favorites. Simple.
+    #NOTE: return dict{permission:value, online:t/f}? or ctl_chat_{SOMETHING}?
+    #   Right now, I'll just return true/false based on a combination of
+    #   permission and online status.
+    
+    #list of valid permissions, in case we need any others
+    valid_permissions = ['allow']
+    r_ufavs = '{u}_favorites'.format(u=user_id)
+    permission = str(redis_client('livechat').hget(r_ufavs, target_id))
+    if permission not in valid_permissions:
+        return {'bool':False, 'why':'ctl_chat_deny'}
+    if user_is_online(target_id):
+        return {'bool':False, 'why':'ctl_chat_offline'}
+    return {'bool':True, 'why':'ctl_chat_accept'}
 
 def user_exists(user_id):
     try:
