@@ -10,6 +10,7 @@ urlpatterns = patterns('',
     (r'^$|^home$', include('play1.urls')),
     #(r'^$|^loginwindow$', 'django.contrib.auth.views.login'),
     (r'^diary/', include('diary.urls')),
+    (r'^admire/', include('admire.urls')),
     # Uncomment the admin/doc line below to enable admin documentation:
     # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
 

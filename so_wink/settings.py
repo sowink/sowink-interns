@@ -224,6 +224,7 @@ INSTALLED_APPS = (
     'users',
     'diary',
     'mall',
+    'admire',
 
     # We need this so the jsi18n view will pick up our locale directory.
     ROOT_PACKAGE,
