@@ -8,13 +8,16 @@
         var clicked = $( this ).val();
         alert( clicked );
         
+        var csrfvalue = $('input[name=csrfmiddlewaretoken]').val();
+
         var sendData = {
-            nameClicked: clicked
+            nameClicked: clicked,
+            csrfmiddlewaretoken: csrfvalue
         }
 
-        var url = "admire.guess_ajax";
+        //var url = "../guess_ajax"; //TODO: ask how to make this better
+        var url = ""; //TODO: ask how to make this better
 
-        var csrfvalue = $('input[name=csrfmiddlewaretoken]').val();
 
         $.post(url, sendData,
             function(data) {
@@ -32,11 +35,11 @@
     <p>Who admires you?</p>
 
     <form name="guessForm" method="POST">
-    {{ csrf }}
+    {{ csrf() }}
     {% for user in users_list %}
         <label>
             {# <input type="radio" name="guesses" value="{{ user.username }}" onclick="guessFunction({{ user.username }})">{{ user.username }}</input> #}
-            <input type="radio" name="guesses" value="{{ user.username }}">{{ user.username }}</input>
+            <input type="radio" name="guesses" value="{{ user.username }}" />{{ user.username }}
         </label>
         <br />
     {% endfor %}

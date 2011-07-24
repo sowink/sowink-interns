@@ -52,8 +52,12 @@ def email(request, user_name):
     print "hiiiiiiiii"
     return HttpResponse("Your admire has been sent! <a href='/admire/guess/" + user_name + "'>That person will see</a>")
     
+#from django.views.decorators.csrf import csrf_protect
+#@csrf_protect
 def guess(request, user_name):
     print user_name
+    if request.method == "POST":
+        print "GGGGGGGGGGPPPPPPPPPPPPPPPPPPPPP"
 
     ctx = {
         'users_list' : User.objects.all(),
