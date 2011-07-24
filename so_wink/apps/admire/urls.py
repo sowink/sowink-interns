@@ -11,6 +11,7 @@ from . import views
 urlpatterns = patterns('admire.views', # gets information from views.py
 
     url(r'^$', views.index, name="admire.index"), # goes to views.py's "def index"
+    url(r'^email/(?P<user_name>\w+)', views.email, name="admire.email"), # goes to views.py's "def index"
 
 
 )

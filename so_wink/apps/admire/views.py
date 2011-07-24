@@ -34,3 +34,21 @@ def index(request):
     rendered = jingo.render(request, 'admire/index.html', ctx)
     return rendered
 
+def email(request, user_name):
+    print user_name
+
+    # get user
+    try:
+        user = User.objects.get(username = user_name)
+    except:
+        return HttpResponse("Invalid username")
+
+    # email user
+    try:
+        user.email_user(subject="HaoQi Test Django Email", message="Haoqi :D:D:D:D")
+    except:
+        return HttpResponse("Failed to email")
+
+    print "hiiiiiiiii"
+    return HttpResponse("Your admire has been sent!")
+    

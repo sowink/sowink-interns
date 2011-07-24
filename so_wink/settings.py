@@ -29,6 +29,10 @@ DATABASES = {}  # See settings_local.
 # Site ID is used by Django's Sites framework.
 SITE_ID = 1
 
+# Added for email
+DEFAULT_FROM_EMAIL = 'haoqili@mit.edu'
+SERVER_EMAIL = 'hq@mit.edu'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ## Internationalization.
 
