@@ -12,6 +12,8 @@ from django.db import connection, transaction
 from django.utils import simplejson
 import json
 
+from django.contrib.auth.models import User
+
 
 # urls.py's views. It renders the urls by putting in appropriate values into templates
 # each def 
@@ -26,6 +28,9 @@ def index(request):
     print "^ ^ ^ ^ ^ Welcome to the Index Page ^ ^ ^ "
     print "request.user: "
     print request.user
-    rendered = jingo.render(request, 'admire/index.html', {})
+    ctx = {
+        'users_list' : User.objects.all(),
+    }
+    rendered = jingo.render(request, 'admire/index.html', ctx)
     return rendered
 

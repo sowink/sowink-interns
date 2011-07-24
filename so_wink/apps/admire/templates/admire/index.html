@@ -4,6 +4,12 @@
 
     <h2>Hi there</h2>
 
-    <p>yay</p>
+    <p>click name below to admire</p>
+
+    <ul>
+    {% for user in users_list %}
+        <li><a href="/admire/email{{ user.username }}">{{ user.username }}</a></li>
+    {% endfor %}
+    </ul>
 
 {% endblock %}
