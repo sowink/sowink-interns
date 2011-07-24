@@ -40,7 +40,7 @@ def email(request, user_name):
     # get user
     try:
         user = User.objects.get(username = user_name)
-    except:
+    except User.DoesNotExist:
         return HttpResponse("Invalid username")
 
     # email user

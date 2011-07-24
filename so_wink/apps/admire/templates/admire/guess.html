@@ -1,15 +1,57 @@
 {% extends "admire/base.html" %}
 
+
+{% block headjs %}
+<script>
+    function guessFunction(){
+        alert( "you clicked");
+        var clicked = $( this ).val();
+        alert( clicked );
+        
+        var sendData = {
+            nameClicked: clicked
+        }
+
+        var url = "admire.guess_ajax";
+
+        var csrfvalue = $('input[name=csrfmiddlewaretoken]').val();
+
+        $.post(url, sendData,
+            function(data) {
+                $('#output').html(data);
+            }
+        );
+    }
+</script>
+{% endblock %}
+
 {% block admireContent %}
 
     <h2>Guess</h2>
 
     <p>Who admires you?</p>
 
-    <ul>
+    <form name="guessForm" method="POST">
+    {{ csrf }}
     {% for user in users_list %}
-        <li><a href="/admire/guess/{{ user.username }}">{{ user.username }}</a></li>
+        <label>
+            {# <input type="radio" name="guesses" value="{{ user.username }}" onclick="guessFunction({{ user.username }})">{{ user.username }}</input> #}
+            <input type="radio" name="guesses" value="{{ user.username }}">{{ user.username }}</input>
+        </label>
+        <br />
     {% endfor %}
-    </ul>
+    </form>
 
+    <div id="output"></div>
+{% endblock %}
+
+{% block tailjs %}
+<script>
+    $(document).ready(function() {
+        
+        // "onclick" for the radio buttons
+        // http://stackoverflow.com/questions/46704/using-jquery-what-is-the-best-way-to-set-onclick-event-listeners-for-radio-butto/46824#46824
+        $( "input[name='guesses']" ).bind( "click", guessFunction )
+    });
+</script>
 {% endblock %}
