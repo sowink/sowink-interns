@@ -50,5 +50,13 @@ def email(request, user_name):
         return HttpResponse("Failed to email")
 
     print "hiiiiiiiii"
-    return HttpResponse("Your admire has been sent!")
+    return HttpResponse("Your admire has been sent! <a href='/admire/guess/" + user_name + "'>That person will see</a>")
     
+def guess(request, user_name):
+    print user_name
+
+    ctx = {
+        'users_list' : User.objects.all(),
+    }
+    rendered = jingo.render(request, 'admire/guess.html', ctx)
+    return rendered

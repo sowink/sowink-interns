@@ -1,0 +1,15 @@
+{% extends "admire/base.html" %}
+
+{% block admireContent %}
+
+    <h2>Guess</h2>
+
+    <p>Who admires you?</p>
+
+    <ul>
+    {% for user in users_list %}
+        <li><a href="/admire/guess/{{ user.username }}">{{ user.username }}</a></li>
+    {% endfor %}
+    </ul>
+
+{% endblock %}
