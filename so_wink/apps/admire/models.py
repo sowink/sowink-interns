@@ -14,7 +14,8 @@ class ProfileVisit(models.Model):
 class Admire(models.Model):
     admirer = models.ForeignKey(User, related_name='admirer')
     being_admired = models.ForeignKey(User, related_name='admire_starter')
-    times_tried = models.PositiveIntegerField(verbose_name='Times Tried to Guess the Admirer')
+    times_tried = models.PositiveIntegerField(verbose_name='Times Tried to Guess the Admirer',
+                                              default=0)
     
     # see: https://docs.djangoproject.com/en/dev/ref/models/fields/#datefield
     modified = models.DateTimeField(auto_now=True)

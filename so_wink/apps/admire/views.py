@@ -52,6 +52,11 @@ def email(request, b_name):
     except User.DoesNotExist:
         return HttpResponse("Invalid being_admired username")
 
+    # put Admire in database
+    try:
+        Admire.objects.create(admirer = admirer, being_admired = being_admired)
+    except:
+        return HttpResponse("failed to record admire in database.")
 
     # email users 
     # TODO: put messages in database?
