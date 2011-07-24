@@ -39,6 +39,7 @@ def index(request):
 def email(request, b_name):
     admirer = ""
     being_admired = ""
+    the_admire_id = ""
 
     # get admirer
     try:
@@ -54,7 +55,8 @@ def email(request, b_name):
 
     # put Admire in database
     try:
-        Admire.objects.create(admirer = admirer, being_admired = being_admired)
+        the_admire = Admire.objects.create(admirer = admirer, being_admired = being_admired)
+        the_admire_id = the_admire.id
     except:
         return HttpResponse("failed to record admire in database.")
 
@@ -87,10 +89,11 @@ def email(request, b_name):
        
         return HttpResponse("Email failed")
 
-    return HttpResponse("Your admire has been sent! <a href='/admire/guess/" + b_name + "'>That person will see</a>")
+    return HttpResponse("Your admire has been sent! <a href='/admire/guess/" + str(the_admire_id) + "'>That person will see</a>")
     
-def guess(request, user_name):
-    print user_name
+def guess(request, admire_id):
+    print "\nInside guess"
+    print admire_id
     if request.method == "POST":
         print "GGGGGGGGGGPPPPPPPPPPPPPPPPPPPPP"
 

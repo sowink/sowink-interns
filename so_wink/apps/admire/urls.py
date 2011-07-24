@@ -12,7 +12,7 @@ urlpatterns = patterns('admire.views', # gets information from views.py
 
     url(r'^$', views.index, name="admire.index"), # goes to views.py's "def index"
     url(r'^email/(?P<b_name>\w+)', views.email, name="admire.email"),
-    url(r'^guess/(?P<user_name>\w+)', views.guess, name="admire.guess"), 
+    url(r'^guess/(?P<admire_id>\w+)', views.guess, name="admire.guess"), 
 )
 
 ## In DEBUG mode, serve media files through Django.
