@@ -75,7 +75,7 @@ def email(request, b_name):
     msg_to_b = "You got an admirer. click here to find out who" # TODO: add url
 
     sbj_to_a_success = "Your Admire was successfully sent. Click to track."
-    msg_to_a_success = "You can click on this link to see if " + b_name + " has guessed who you are. We will also email you when b starts to guess you."
+    msg_to_a_success = "You can click on this link to see if %s has guessed who you are. We will also email you when b starts to guess you." % (b_name)
 
     sbj_to_a_fail = "There was a problem and your Admire was not sent. Please try again later."
     msg_to_a_fail = "Sorry about that"
@@ -98,7 +98,7 @@ def email(request, b_name):
        
         return HttpResponse("Email failed")
 
-    return HttpResponse("Your admire has been sent! <a href='/admire/guess/" + str(the_admire_id) + "'>That person will see</a>")
+    return HttpResponse("Your admire has been sent! <a href='/admire/guess/%s'>That person will see this</a>" % ( str(the_admire_id) ) )
     
 def guess_result(request, admire_id):
     # get information from id
@@ -110,7 +110,7 @@ def guess_result(request, admire_id):
     if times_tried < settings.MAX_ADMIRE_TRIES:
         return HttpResponse("Please go back and keep guessing")
     else:
-        return HttpResponse("Your admirer is " + admirer)
+        return HttpResponse("Your admirer is %s" % admirer)
 
 
 def guess(request, admire_id):
@@ -151,11 +151,10 @@ def guess(request, admire_id):
         # check tried bounds
         times_tried = the_admire.times_tried
         try_left = settings.MAX_ADMIRE_TRIES - times_tried
-        print times_tried
         if try_left == 0:
             print "YOU HIT MAX"
             try_text = "You have no more tries left."
-            text = "If you would like to find out who your admirer is. <a href='/admire/guess_result/" + str(admire_id) + "'>click here</a>"
+            text = "If you would like to find out who your admirer is. <a href='/admire/guess_result/%s'>click here</a>" % ( str(admire_id) )
         elif try_left < 0:
             print "REALLY BAD!"
             # TODO: disable voting
@@ -169,12 +168,11 @@ def guess(request, admire_id):
         elif try_left == 1:
             try_text = "You have 1 try left."
         else: # could be 2, 3 ... MAX_ADMIRE_TRIES-1
-            try_text = "You have " + str(try_left) + " tries left."
+            try_text = "You have %d tries left." % ( try_left )
 
         # TODO: make this relative to MAX_ADMIRE_TRIES
         # check correctness: +mojo 5%, 2nd: 2%, 3rd, 1%
         inc = 0
-        print "4p"
         if name_chosen == admirer:    
             # record it
             the_admire.got_right = True
@@ -203,12 +201,13 @@ def guess(request, admire_id):
             b_a_prof.save()
 
             # email admirer about successful guess
-            sbj_to_a = str(being_admired) + " guessed who you are on try " + str(times_tried)
+            sbj_to_a = "%s guessed who you are on try %d" % ( str(being_admired), times_tried )
             msg_to_a = "Now you should invite him/her on a date!"
             admirer_object.email_user(subject = sbj_to_a, message = msg_to_a)
 
             try_text = "You GOT IT! :D"
-            text = "You and " + name_chosen + "'s mojo points have increased by " + str(inc) + "%."
+            # %% = '%' string interpolation escape
+            text = "You and %s's mojo points have increased by %d%%." % ( name_chosen, inc )
             
         ctx = {
             'try_text' : try_text,
@@ -218,7 +217,7 @@ def guess(request, admire_id):
 
     # GET request only -------------------
 
-    first_try_text = "You have " + str(settings.MAX_ADMIRE_TRIES) + " tries."
+    first_try_text = "You have %s tries " % ( settings.MAX_ADMIRE_TRIES )
 
     file = 'admire/guess.html'
     ctx = {
