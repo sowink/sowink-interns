@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.shortcuts import render_to_response, get_object_or_404
 from django.db import connection, transaction
 from django.utils import simplejson
+from django.conf import settings
 import json
 
 from django.contrib.auth.models import User
@@ -45,7 +46,7 @@ def email(request, b_name):
     try:
         admirer = User.objects.get(username = request.user)
     except User.DoesNotExist:
-        return HttpResponse("Invalid admirer username")
+        return HttpResponse("Invalid admirer username. Have you logged in?")
 
     # get being_admired
     try:
@@ -98,12 +99,29 @@ def guess(request, admire_id):
     the_admire = Admire.objects.get(id = admire_id)
     admirer = str(the_admire.admirer) # must have str() to make check work
     being_admired = str(the_admire.being_admired)
-    times_tried = the_admire.times_tried
+
+    file = 'admire/guess.html'
 
     if request.method == "POST":
+        print "POSTTTTTTTTTTTTTTTTTT"
+        file = 'admire/guess_results.html'
+
         user_input = request.POST
         name_chosen = user_input['nameClicked']
 
+        # increment times tried
+        the_admire.times_tried += 1
+        the_admire.save()
+
+        # check tried bounds
+        times_tried = the_admire.times_tried
+        try_max = settings.MAX_ADMIRE_TRIES
+        if times_tried == try_max:
+            print "YOU HIT MAX"
+        if times_tried > try_max:
+            print "REALLY BAD!"
+        else:
+            print "okay"
         # check name
         if name_chosen == admirer :    
             print "yes"
@@ -113,5 +131,5 @@ def guess(request, admire_id):
     ctx = {
         'users_list' : User.objects.all(),
     }
-    rendered = jingo.render(request, 'admire/guess.html', ctx)
+    rendered = jingo.render(request, file, ctx)
     return rendered
