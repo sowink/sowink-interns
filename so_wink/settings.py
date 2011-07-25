@@ -182,9 +182,9 @@ MINIFY_BUNDLES = {
     },
     'js': {
 #comment all these js till I add them
-#         'common': (
+         'common': (
 # #            'js/i18n.js',
-#             'js/libs/jquery.min.js',
+             'js/libs/jquery.min.js',
 #             'js/libs/modernizr-1.7.js',
 #             'js/libs/jquery.cookie.js',
 #             'js/libs/jquery.placeholder.js',
@@ -193,7 +193,7 @@ MINIFY_BUNDLES = {
 #             'js/main.js',
 #             'js/format.js',
 #             'js/loadtest.js',
-#         ),
+         ),
     }
 }
 

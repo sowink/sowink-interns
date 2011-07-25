@@ -121,22 +121,25 @@ def guess(request, admire_id):
         else:
             print "okay"
 
-        if times_tried == try_max:
-            print "YOU HIT MAX"
-        if times_tried > try_max:
-            print "REALLY BAD!"
-        else:
-            print "okay"
+        #if times_tried == try_max:
+        #    print "YOU HIT MAX"
+        #if times_tried > try_max:
+        #    print "REALLY BAD!"
+        #else:
+        #    print "okay"
+
         # check name
-        if name_chosen == admirer :    
+        if name_chosen == admirer:    
             print "yes"
         else:
             print "false"
 
         file = 'admire/guess_results.html'
+        try_left = "boo"
+        text = "haha"
         ctx = {
             'try_left' : try_left,
-            'result_text' : text,
+            'result_text' : text
         }
         rendered = jingo.render(request, file, ctx)
 
