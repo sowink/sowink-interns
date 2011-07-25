@@ -93,9 +93,22 @@ def email(request, b_name):
     
 def guess(request, admire_id):
     print "\nInside guess"
-    print admire_id
+
+    # get information from id
+    the_admire = Admire.objects.get(id = admire_id)
+    admirer = str(the_admire.admirer) # must have str() to make check work
+    being_admired = str(the_admire.being_admired)
+    times_tried = the_admire.times_tried
+
     if request.method == "POST":
-        print "GGGGGGGGGGPPPPPPPPPPPPPPPPPPPPP"
+        user_input = request.POST
+        name_chosen = user_input['nameClicked']
+
+        # check name
+        if name_chosen == admirer :    
+            print "yes"
+        else:
+            print "false"
 
     ctx = {
         'users_list' : User.objects.all(),

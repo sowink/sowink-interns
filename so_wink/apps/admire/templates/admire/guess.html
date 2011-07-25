@@ -4,9 +4,7 @@
 {% block headjs %}
 <script>
     function guessFunction(){
-        alert( "you clicked");
         var clicked = $( this ).val();
-        alert( clicked );
         
         var csrfvalue = $('input[name=csrfmiddlewaretoken]').val();
 
