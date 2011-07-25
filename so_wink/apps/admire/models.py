@@ -16,6 +16,7 @@ class Admire(models.Model):
     being_admired = models.ForeignKey(User, related_name='admire_starter')
     times_tried = models.PositiveIntegerField(verbose_name='Times Tried to Guess the Admirer',
                                               default=0)
+    got_right = models.BooleanField(default=False)
     
     # see: https://docs.djangoproject.com/en/dev/ref/models/fields/#datefield
     modified = models.DateTimeField(auto_now=True)

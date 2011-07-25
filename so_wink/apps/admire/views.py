@@ -34,8 +34,7 @@ def index(request):
     ctx = {
         'users_list' : User.objects.all(),
     }
-    rendered = jingo.render(request, 'admire/index.html', ctx)
-    return rendered
+    return jingo.render(request, 'admire/index.html', ctx)
 
 def email(request, b_name):
     admirer = ""
@@ -100,9 +99,13 @@ def guess(request, admire_id):
     admirer = str(the_admire.admirer) # must have str() to make check work
     being_admired = str(the_admire.being_admired)
 
-
     if request.method == "POST":
+        file = 'admire/guess_results.html'
+        # default text
+        text = "haha"
+
         print "inside post"
+        # Get input for guessed admirer
         user_input = request.POST
         name_chosen = user_input['nameClicked']
 
@@ -110,33 +113,79 @@ def guess(request, admire_id):
         the_admire.times_tried += 1
         the_admire.save()
 
+        # check if already correct
+        if the_admire.got_right:
+            # TODO: disable voting
+            try_text = "Great job!"
+            text = "You already guessed correctly!"
+            ctx = {
+                'try_text' : try_text,
+                'result_text' : text
+            }
+            return jingo.render(request, file, ctx)
+
         # check tried bounds
         times_tried = the_admire.times_tried
         try_left = settings.MAX_ADMIRE_TRIES - times_tried
+        print times_tried
         if try_left == 0:
             print "YOU HIT MAX"
             try_text = "You have no more tries left."
         elif try_left < 0:
             print "REALLY BAD!"
-            try_text = "You have no more tries left"
+            # TODO: disable voting
+            try_text = "Stop messing with the system, you really have no more tries left"
+            text = "You did not guess correctly."
+            ctx = {
+                'try_text' : try_text,
+                'result_text' : text
+            }
+            return jingo.render(request, file, ctx)
         elif try_left == 1:
             try_text = "You have 1 try left."
         else: # could be 2, 3 ... MAX_ADMIRE_TRIES-1
             try_text = "You have " + str(try_left) + " tries left."
 
-        # check name
+        # check correctness: +mojo 5%, 2nd: 2%, 3rd, 1%
+        inc = 0
+        print "4p"
         if name_chosen == admirer:    
-            print "yes"
-        else:
-            print "false"
-        file = 'admire/guess_results.html'
-        text = "haha"
+            # record it
+            the_admire.got_right = True
+            the_admire.save() 
+
+            if times_tried == 1:
+                inc = 5
+            if times_tried == 2:
+                inc = 2
+            if times_tried == 3:
+                inc = 1
+ 
+            # get information from profilevisit
+            a_b_prof = ProfileVisit.objects.get( visited_user = the_admire.admirer_id, visitor = the_admire.being_admired_id )
+            b_a_prof = ProfileVisit.objects.get( visited_user = the_admire.being_admired_id, visitor = the_admire.admirer_id )
+            print "the 2 prof ids:"
+            print a_b_prof.id
+            print b_a_prof.id
+
+            # save mojo to database
+            print "saving mojo to database:"
+            a_b_prof.mojo += inc
+            print a_b_prof.mojo
+            a_b_prof.save()
+            b_a_prof.mojo += inc
+            b_a_prof.save()
+
+            try_text = "You GOT IT! :D"
+            text = "You and " + name_chosen + "'s mojo points have increased by " + str(inc) + "%."
+            
         ctx = {
             'try_text' : try_text,
             'result_text' : text
         }
-        rendered = jingo.render(request, file, ctx)
-        return rendered
+        return jingo.render(request, file, ctx)
+
+    # GET request only -------------------
 
     first_try_text = "You have " + str(settings.MAX_ADMIRE_TRIES) + " tries."
 
@@ -145,5 +194,4 @@ def guess(request, admire_id):
         'first_try_text' : first_try_text,
         'users_list' : User.objects.all(),
     }
-    rendered = jingo.render(request, file, ctx)
-    return rendered
+    return jingo.render(request, file, ctx)
