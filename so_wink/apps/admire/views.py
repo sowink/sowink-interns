@@ -107,12 +107,14 @@ def guess_result(request, admire_id):
 def guess(request, admire_id):
     print "\nInside guess"
 
-    # get information from id
-    the_admire = Admire.objects.get(id = admire_id)
-    admirer = str(the_admire.admirer) # must have str() to make check work
-    being_admired = str(the_admire.being_admired)
-
     if request.method == "POST":
+
+        # get information from id
+        the_admire = Admire.objects.get(id = admire_id)
+        admirer = str(the_admire.admirer) # must have str() to make check work
+        admirer_object =  User.objects.get( username = admirer )
+        being_admired = str(the_admire.being_admired)
+
         file = 'admire/guess_results.html'
         # default text
         text = "haha"
@@ -190,6 +192,11 @@ def guess(request, admire_id):
             a_b_prof.save()
             b_a_prof.mojo += inc
             b_a_prof.save()
+
+            # email admirer about successful guess
+            sbj_to_a = str(being_admired) + " guessed who you are on try " + str(times_tried)
+            msg_to_a = "Now you should invite him/her on a date!"
+            admirer_object.email_user(subject = sbj_to_a, message = msg_to_a)
 
             try_text = "You GOT IT! :D"
             text = "You and " + name_chosen + "'s mojo points have increased by " + str(inc) + "%."
