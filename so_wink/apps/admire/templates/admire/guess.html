@@ -19,7 +19,7 @@
 
         $.post(url, sendData,
             function(data) {
-                //$('#output').html(data);
+                $('#results').html(data);
             }
         );
     }
@@ -44,6 +44,7 @@
     </form>
 
     <div id="results">
+        <p>{{ first_try_text }}</p>
         {% include 'admire/guess_results.html' %}
     </div>
 {% endblock %}

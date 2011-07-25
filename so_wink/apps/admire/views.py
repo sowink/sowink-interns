@@ -102,7 +102,7 @@ def guess(request, admire_id):
 
 
     if request.method == "POST":
-
+        print "inside post"
         user_input = request.POST
         name_chosen = user_input['nameClicked']
 
@@ -112,39 +112,37 @@ def guess(request, admire_id):
 
         # check tried bounds
         times_tried = the_admire.times_tried
-        try_max = settings.MAX_ADMIRE_TRIES
         try_left = settings.MAX_ADMIRE_TRIES - times_tried
         if try_left == 0:
             print "YOU HIT MAX"
-        if try_left < 0:
+            try_text = "You have no more tries left."
+        elif try_left < 0:
             print "REALLY BAD!"
-        else:
-            print "okay"
-
-        #if times_tried == try_max:
-        #    print "YOU HIT MAX"
-        #if times_tried > try_max:
-        #    print "REALLY BAD!"
-        #else:
-        #    print "okay"
+            try_text = "You have no more tries left"
+        elif try_left == 1:
+            try_text = "You have 1 try left."
+        else: # could be 2, 3 ... MAX_ADMIRE_TRIES-1
+            try_text = "You have " + str(try_left) + " tries left."
 
         # check name
         if name_chosen == admirer:    
             print "yes"
         else:
             print "false"
-
         file = 'admire/guess_results.html'
-        try_left = "boo"
         text = "haha"
         ctx = {
-            'try_left' : try_left,
+            'try_text' : try_text,
             'result_text' : text
         }
         rendered = jingo.render(request, file, ctx)
+        return rendered
+
+    first_try_text = "You have " + str(settings.MAX_ADMIRE_TRIES) + " tries."
 
     file = 'admire/guess.html'
     ctx = {
+        'first_try_text' : first_try_text,
         'users_list' : User.objects.all(),
     }
     rendered = jingo.render(request, file, ctx)
