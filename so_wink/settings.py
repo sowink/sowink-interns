@@ -113,7 +113,8 @@ MEDIA_ROOT = path('media')
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
-MEDIA_URL = 'http://localhost/media/'
+#MEDIA_URL = 'http://localhost/media/'
+MEDIA_URL = '/media/'
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
@@ -139,7 +140,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
 
     'commons.context_processors.i18n',
-    #'jingo_minify.helpers.build_ids',
+    'jingo_minify.helpers.build_ids',
 )
 
 TEMPLATE_DIRS = (
@@ -184,7 +185,7 @@ MINIFY_BUNDLES = {
 #comment all these js till I add them
          'common': (
 # #            'js/i18n.js',
-             'js/libs/jquery.min.js',
+             'js/libs/jquery-1.6.2.min.js',
 #             'js/libs/modernizr-1.7.js',
 #             'js/libs/jquery.cookie.js',
 #             'js/libs/jquery.placeholder.js',
