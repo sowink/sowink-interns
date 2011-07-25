@@ -53,6 +53,15 @@ def email(request, b_name):
     except User.DoesNotExist:
         return HttpResponse("Invalid being_admired username")
 
+    # see if A has already admired B
+    # returns empty list if no match
+    # TODO: multi filter() or singular get() ?
+    already_admire = Admire.objects.filter(admirer = admirer, being_admired = being_admired)
+    if already_admire:
+        created = already_admire[0].created
+        already_text = "Sorry, you can't admire %s again. You admired this person on %s" % (being_admired, created)
+        return HttpResponse(already_text)
+
     # put Admire in database
     try:
         the_admire = Admire.objects.create(admirer = admirer, being_admired = being_admired)
