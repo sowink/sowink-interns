@@ -36,7 +36,6 @@
     {{ csrf() }}
     {% for user in users_list %}
         <label>
-            {# <input type="radio" name="guesses" value="{{ user.username }}" onclick="guessFunction({{ user.username }})">{{ user.username }}</input> #}
             <input type="radio" name="guesses" value="{{ user.username }}" />{{ user.username }}
         </label>
         <br />
@@ -45,6 +44,18 @@
 
     <div id="results">
         <p>{{ first_try_text }}</p>
+        <p>{{ the_admire.admirer.username }}</p>
+         {% if the_admire.got_right %}
+            good
+        {% else %}
+            bad
+        {% endif %}
+
+        {% if number == 3 %}
+            good
+        {% else %}
+            bad
+        {% endif %}
         {% include 'admire/guess_results.html' %}
     </div>
 {% endblock %}

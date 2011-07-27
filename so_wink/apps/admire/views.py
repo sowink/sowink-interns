@@ -1,6 +1,7 @@
 import jingo
 import bleach
 import urllib # to refresh recaptcha
+import random
 
 from commons.urlresolvers import reverse
 
@@ -28,14 +29,12 @@ from admire.models import Admire, ProfileVisit
 #       e.g. index's Page.objects.all() is a list of all page (xss, sqlinjection)s
 
 def index(request):
-    print "^ ^ ^ ^ ^ Welcome to the Index Page ^ ^ ^ "
-    print "request.user: "
-    print request.user
     ctx = {
-        'users_list' : User.objects.all(),
+        'users_list' : User.objects.exclude(username = request.user),
     }
     return jingo.render(request, 'admire/index.html', ctx)
 
+#@login_required
 def email(request, b_name):
     admirer = ""
     being_admired = ""
@@ -74,29 +73,11 @@ def email(request, b_name):
     sbj_to_b = "You got an Admirer! Guess who!"
     msg_to_b = "You got an admirer. click here to find out who" # TODO: add url
 
-    sbj_to_a_success = "Your Admire was successfully sent. Click to track."
-    msg_to_a_success = "You can click on this link to see if %s has guessed who you are. We will also email you when b starts to guess you." % (b_name)
-
-    sbj_to_a_fail = "There was a problem and your Admire was not sent. Please try again later."
-    msg_to_a_fail = "Sorry about that"
-
     # 1. email being_admired
     try:
         being_admired.email_user(subject = sbj_to_b, message = msg_to_b)
-
-        # 2. email admirer -- success
-        try:
-            admirer.email_user(subject = sbj_to_a_success, message = msg_to_a_success)
-        except:
-            return HttpResponse("Email failed")
     except:
-        # 2. email admirer -- fail
-        try:
-            admirer.email_user(subject = sbj_to_a_fail, message = msg_to_a_fail)
-        except:
-            return HttpResponse("Email failed")
-       
-        return HttpResponse("Email failed")
+        return HttpResponse("Emailing being_admired failed")
 
     return HttpResponse("Your admire has been sent! <a href='/admire/guess/%s'>That person will see this</a>" % ( str(the_admire_id) ) )
     
@@ -115,14 +96,12 @@ def guess_result(request, admire_id):
 
 def guess(request, admire_id):
     print "\nInside guess"
+    # get information from id
+    the_admire = Admire.objects.get(id = admire_id)
+    admirer = the_admire.admirer
+    being_admired = the_admire.being_admired
 
     if request.method == "POST":
-
-        # get information from id
-        the_admire = Admire.objects.get(id = admire_id)
-        admirer = str(the_admire.admirer) # must have str() to make check work
-        admirer_object =  User.objects.get( username = admirer )
-        being_admired = str(the_admire.being_admired)
 
         file = 'admire/guess_results.html'
         # default text
@@ -173,11 +152,10 @@ def guess(request, admire_id):
         # TODO: make this relative to MAX_ADMIRE_TRIES
         # check correctness: +mojo 5%, 2nd: 2%, 3rd, 1%
         inc = 0
-        if name_chosen == admirer:    
+        if name_chosen == str(admirer):    
             # record it
             the_admire.got_right = True
             the_admire.save() 
-
             if times_tried == 1:
                 inc = 5
             elif times_tried == 2:
@@ -188,14 +166,10 @@ def guess(request, admire_id):
             # get information from profilevisit
             a_b_prof = ProfileVisit.objects.get( visited_user = the_admire.admirer_id, visitor = the_admire.being_admired_id )
             b_a_prof = ProfileVisit.objects.get( visited_user = the_admire.being_admired_id, visitor = the_admire.admirer_id )
-            print "the 2 prof ids:"
-            print a_b_prof.id
-            print b_a_prof.id
 
             # save mojo to database
             print "saving mojo to database:"
             a_b_prof.mojo += inc
-            print a_b_prof.mojo
             a_b_prof.save()
             b_a_prof.mojo += inc
             b_a_prof.save()
@@ -203,13 +177,14 @@ def guess(request, admire_id):
             # email admirer about successful guess
             sbj_to_a = "%s guessed who you are on try %d" % ( str(being_admired), times_tried )
             msg_to_a = "Now you should invite him/her on a date!"
-            admirer_object.email_user(subject = sbj_to_a, message = msg_to_a)
+            admirer.email_user(subject = sbj_to_a, message = msg_to_a)
 
             try_text = "You GOT IT! :D"
             # %% = '%' string interpolation escape
             text = "You and %s's mojo points have increased by %d%%." % ( name_chosen, inc )
             
         ctx = {
+            'the_admire': the_admire,
             'try_text' : try_text,
             'result_text' : text
         }
@@ -217,11 +192,27 @@ def guess(request, admire_id):
 
     # GET request only -------------------
 
+    # Randomize guesses to display. 1 must be the admirer, not display person itself
+    # 1. delete the a from list 
+    # 2. delete the b from list 
+    guess_qset = User.objects.exclude(username = admirer)
+    guess_qset = guess_qset.exclude(username = str(being_admired) )
+    # 3. randomize and take first 5 and list-ify 
+    num_fillers = settings.NUMBER_GUESSES_DISPLAYED - 1
+    guess_list = list(guess_qset.order_by('?')[:num_fillers])
+    # 4. add a into list
+    guess_list.append( admirer )
+    # 5. shuffle list again
+    random.shuffle(guess_list)
+
+    # template stuff
     first_try_text = "You have %s tries " % ( settings.MAX_ADMIRE_TRIES )
 
     file = 'admire/guess.html'
     ctx = {
+        'the_admire': the_admire,
+        'number': 3,
         'first_try_text' : first_try_text,
-        'users_list' : User.objects.all(),
+        'users_list' : guess_list,
     }
     return jingo.render(request, file, ctx)
