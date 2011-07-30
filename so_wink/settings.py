@@ -210,6 +210,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'commonware.middleware.FrameOptionsHeader',
 )
 
@@ -253,6 +254,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
+    'debug_toolbar',
 
     # L10n
     'django_extensions',
@@ -316,3 +318,6 @@ CELERY_IGNORE_RESULT = True
 ## Admire
 NUMBER_GUESSES_DISPLAYED = 6
 MAX_ADMIRE_TRIES = 3
+
+## for Django-debug-toolbar
+INTERNAL_IPS = ('127.0.0.1',)
